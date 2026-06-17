@@ -1,0 +1,13 @@
+{
+  "name": "sensor-telemetry-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "test": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  }
+}

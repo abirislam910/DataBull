@@ -1,0 +1,34 @@
+[project]
+name = "sensor-telemetry-backend"
+version = "0.1.0"
+description = "FastAPI backend for the Sensor Telemetry Platform"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy>=2.0",
+    "alembic",
+    "pydantic>=2",
+    "python-jose[cryptography]",
+    "passlib[bcrypt]",
+    "apscheduler",
+    "anthropic",
+    "numpy",
+    "psycopg[binary]",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "testcontainers",
+    "ruff",
+    "mypy",
+]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.mypy]
+strict = true

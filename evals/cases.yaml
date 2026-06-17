@@ -1,0 +1,6 @@
+# Agent eval cases — see /docs/SPEC.md "Eval plan".
+# 30 labeled cases total:
+#   12 simple recall, 8 aggregation, 5 multi-step, 3 alert-aware, 2 should-decline.
+# Each case: user question, expected tool-call sequence (names + arg patterns),
+# and a rubric of keywords the final answer must contain.
+cases: []
