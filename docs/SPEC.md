@@ -46,7 +46,7 @@ These were considered and deliberately excluded for v1.
 | id | UUID | PK |
 | user_id | UUID | FK → users, indexed |
 | name | str | unique per user |
-| type | enum | `temperature` \| `pressure` \| `flow` \| `vibration` |
+| type | enum | `temperature` \| `pressure` \| `flow` |
 | unit | str | °C, kPa, L/min, mm/s |
 | min_threshold | float \| null | for alert generation |
 | max_threshold | float \| null | for alert generation |
