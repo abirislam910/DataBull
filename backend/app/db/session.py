@@ -34,7 +34,8 @@ engine: AsyncEngine = create_async_engine(
 # async this matters: the default would expire loaded attributes, and touching
 # one would trigger a *lazy* reload — an implicit I/O that async sessions forbid,
 # raising `MissingGreenlet`. Turning it off makes returning ORM objects from a
-# request safe without an extra refresh round-trip.
+# request safe without an extra refresh round-trip, albeit with the tradeoff that the returned objects may be stale if the 
+# transaction was committed by another session.
 AsyncSessionLocal = async_sessionmaker(
     engine,
     expire_on_commit=False,
