@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     # SQLAlchemy URL. The `+psycopg` driver is psycopg 3, which SQLAlchemy can
     # drive both synchronously (Alembic migrations) and asynchronously (the app)
     # from this one URL. Default points at the docker-compose Postgres/TimescaleDB.
-    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/telemetry"
+    database_url: str = (
+        "postgresql+psycopg://postgres:postgres@localhost:5432/telemetry"
+    )
 
     # Echo emitted SQL to the logger. Off by default; handy when debugging.
     sql_echo: bool = False

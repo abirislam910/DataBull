@@ -14,7 +14,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, func
+from sqlalchemy import DateTime, Float, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -38,9 +38,7 @@ class Reading(Base):
     # Composite primary key (time, device_id). A hypertable's partitioning column
     # MUST be part of every unique constraint/PK, which is exactly why `time`
     # leads the key. `time` is the sensor timestamp;
-    time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), primary_key=True
-    )
+    time: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
 
     # Second half of the PK. ON DELETE CASCADE so dropping a device drops its
     # readings at the DB level (pairs with passive_deletes on Device.readings).

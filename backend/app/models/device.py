@@ -7,7 +7,15 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum as SAEnum, Float, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import (
+    DateTime,
+    Enum as SAEnum,
+    Float,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -56,7 +64,11 @@ class Device(Base):
     # to store the lowercase *values* instead, matching the API contract. The
     # same mapping is used on read to turn "temperature" back into the member.
     type: Mapped[DeviceType] = mapped_column(
-        SAEnum(DeviceType, name="device_type", values_callable=lambda enum_cls: [m.value for m in enum_cls])
+        SAEnum(
+            DeviceType,
+            name="device_type",
+            values_callable=lambda enum_cls: [m.value for m in enum_cls],
+        )
     )
 
     # Display unit: "°C", "kPa", "L/min".
