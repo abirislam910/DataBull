@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "sensor-telemetry-backend"
 version = "0.1.0"
@@ -21,15 +25,38 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest",
-    "pytest-asyncio",
+    "pytest-asyncio>=0.24",
     "httpx",
     "testcontainers",
     "ruff",
     "mypy",
 ]
 
+# Only the app package is importable/installable; alembic/ and tests/ are not
+# part of the distribution.
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+# auto: every `async def test_*` is treated as an asyncio test without a
+# per-test decorator. Fixtures stay function-scoped so each test gets its own
+# event loop and its own short-lived engine (see tests/conftest.py for why).
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# Make `import app...` resolve from the source tree when running pytest, even
+# without an editable install.
+pythonpath = ["."]
+testpaths = ["tests"]
+
 [tool.ruff]
 target-version = "py312"
 
 [tool.mypy]
 strict = true
+
+# testcontainers ships no type stubs / py.typed marker, so mypy --strict would
+# error on the import. Scope the leniency to that third-party package only; our
+# own code stays fully strict.
+[[tool.mypy.overrides]]
+module = "testcontainers.*"
+ignore_missing_imports = true
