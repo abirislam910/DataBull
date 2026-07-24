@@ -168,26 +168,27 @@ async def test_delete_user_cascades_to_devices(
     ).scalar_one()
     assert remaining == 0, "Expected all devices for the user to be deleted"
 
+
 async def test_delete_user_cascades_to_readings(
-        db_session: AsyncSession,
-        make_user: Callable[..., Awaitable[User]],
-        make_device: Callable[..., Awaitable[Device]],
-        make_reading: Callable[..., Awaitable[Reading]],
+    db_session: AsyncSession,
+    make_user: Callable[..., Awaitable[User]],
+    make_device: Callable[..., Awaitable[Device]],
+    make_reading: Callable[..., Awaitable[Reading]],
 ) -> None:
     user = await make_user()
     device = await make_device(user)
-    reading = await make_reading(device)
+    await make_reading(device)
 
     await db_session.delete(user)
     await db_session.flush()
 
     remaining = (
         await db_session.execute(
-            text("SELECT count(*) FROM readings WHERE device_id = :d"),
-            {"d": device.id}
+            text("SELECT count(*) FROM readings WHERE device_id = :d"), {"d": device.id}
         )
     ).scalar_one()
     assert remaining == 0, "Expected all readings for the user to be deleted"
+
 
 async def test_relationships_load_eagerly(
     db_session: AsyncSession,
