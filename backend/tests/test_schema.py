@@ -7,10 +7,11 @@ is precisely what we declared, and the models still agree with the migration.
 
 from datetime import timedelta
 
-from alembic import command
 from alembic.config import Config
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from alembic import command
 
 
 async def test_readings_is_a_hypertable(db_session: AsyncSession) -> None:

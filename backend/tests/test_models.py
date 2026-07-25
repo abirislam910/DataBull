@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models import Device, DeviceType, User, Reading
+from app.models import Device, DeviceType, Reading, User
 
 
 async def test_round_trip(
