@@ -12,17 +12,17 @@ from __future__ import annotations
 
 import os
 from collections.abc import AsyncGenerator, Awaitable, Callable, Iterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 import pytest_asyncio
-from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
+from alembic import command
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.main import app
@@ -166,7 +166,7 @@ def make_reading(db_session: AsyncSession) -> Callable[..., Awaitable[Reading]]:
     async def _make(device: Device, **overrides: object) -> Reading:
         reading = Reading(
             device_id=device.id,
-            time=overrides.get("time", datetime.now(timezone.utc)),
+            time=overrides.get("time", datetime.now(UTC)),
             value=overrides.get("value", 18.0),
         )
         db_session.add(reading)

@@ -8,17 +8,16 @@ file — from the very same URL, so there is no second DSN to keep in sync.
 
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import create_engine, pool
-
-from app.core.config import get_settings
-from app.db.base import Base
 
 # Importing the models package registers User, Device, and Reading on
 # Base.metadata. Without this line autogenerate would see an empty schema and
 # happily propose dropping every table. `noqa: F401` — imported for the import
 # side effect, not to be referenced.
 import app.models  # noqa: F401
+from alembic import context
+from app.core.config import get_settings
+from app.db.base import Base
 
 config = context.config
 
