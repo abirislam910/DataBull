@@ -36,7 +36,7 @@ These were considered and deliberately excluded for v1.
 |---|---|---|
 | id | UUID | PK |
 | email | str | unique, indexed |
-| password_hash | str | bcrypt via passlib |
+| password_hash | str | bcrypt via pwdlib |
 | created_at | timestamptz | default now() |
 
 ### `devices`
