@@ -30,6 +30,7 @@ dev = [
     "testcontainers",
     "ruff",
     "mypy",
+    "types-python-jose",
 ]
 
 # Only the app package is importable/installable; alembic/ and tests/ are not
