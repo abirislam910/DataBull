@@ -22,8 +22,16 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
+# SECRET_KEY is a required setting with no default, so the app refuses to import
+# without it. Set a throwaway value before importing anything under `app.`,
+# which reads settings at import time. `setdefault` so a real env var still wins.
+os.environ.setdefault("SECRET_KEY", "test-secret-key-not-used-outside-tests")
+
+# These imports must stay below the env setup above — `app.*` reads settings at
+# import time, so moving them to the top of the file breaks collection.
 from alembic import command
 from app.core.config import get_settings
+from app.core.security import create_access_token
 from app.db.session import get_db
 from app.main import app
 from app.models import Device, DeviceType, Reading, User
@@ -194,3 +202,19 @@ async def reading(
     make_reading: Callable[..., Awaitable[Reading]], device: Device
 ) -> Reading:
     return await make_reading(device)
+
+
+# --- Authenticated client ---------------------------------------------------
+
+
+@pytest_asyncio.fixture
+async def authed_client(client: AsyncClient, user: User) -> AsyncClient:
+    """The `client`, pre-loaded with a valid bearer token for `user`.
+
+    Mints the token directly rather than POSTing to /auth/login: a test of the
+    devices API should fail because devices are broken, not because login is.
+    Tests that care about the login flow itself exercise the endpoint instead.
+    """
+    token = create_access_token(user.id)
+    client.headers["Authorization"] = f"Bearer {token}"
+    return client

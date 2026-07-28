@@ -1,11 +1,18 @@
-"""FastAPI application entrypoint.
-
-Placeholder scaffold — routers, lifespan, and middleware to be added per /docs/SPEC.md.
-"""
+"""FastAPI application entrypoint."""
 
 from fastapi import FastAPI
 
+from app.api import auth
+from app.core.errors import register_exception_handlers
+
 app = FastAPI(title="Sensor Telemetry Platform")
+
+# Installed before the routers so every error — ours, Pydantic's validation
+# failures, and framework 404s alike — leaves the API in the shape SPEC.md
+# documents: {"detail", "code", "field"?}.
+register_exception_handlers(app)
+
+app.include_router(auth.router)
 
 
 @app.get("/health")
