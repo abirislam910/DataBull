@@ -32,7 +32,6 @@ class User(Base):
     # Login looks users up by email, so the index earns its keep.
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
 
-    # bcrypt hashes are 60 chars; 255 leaves headroom for any future scheme.
     # Never stores the plaintext password — hashing happens in the service layer.
     password_hash: Mapped[str] = mapped_column(String(255))
 

@@ -40,5 +40,10 @@ jobs:
 
       # testcontainers uses the Docker daemon preinstalled on ubuntu-latest to
       # start a real TimescaleDB; no services: block needed.
+      # SECRET_KEY has no default by design, so CI supplies a throwaway one. It
+      # signs only tokens minted and verified inside this run — it is not a
+      # secret and must never be reused for a deployed environment.
       - name: Tests (pytest + testcontainers)
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-for-any-deployment
         run: pytest -q
