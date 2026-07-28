@@ -15,10 +15,7 @@ dependencies = [
     "pydantic[email]>=2",
     "pydantic-settings",
     "python-jose[cryptography]",
-    # pwdlib replaces passlib, which is unmaintained since 2020 and broken on
-    # bcrypt >= 4.1 (it reads the removed `bcrypt.__about__`). pwdlib wraps the
-    # maintained bcrypt lib and keeps algorithm agility for a later argon2 move.
-    "pwdlib[bcrypt]",
+    "pwdlib[argon2]",
     "apscheduler",
     "anthropic",
     "numpy",

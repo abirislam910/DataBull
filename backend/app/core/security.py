@@ -6,7 +6,7 @@ logic easy to reason about and to unit-test.
 
 WHY HASHING AND SIGNING ARE DIFFERENT JOBS
 ------------------------------------------
-* Hashing (bcrypt) is **one-way**. We store `hash(password)` so that a database
+* Hashing (argon2) is **one-way**. We store `hash(password)` so that a database
   leak does not hand an attacker anyone's password. There is no "unhash".
 * Signing (JWT/HMAC) is **verification of authorship**. The token's payload is
   readable by anyone; the signature only proves *we* issued it and that nobody
@@ -20,41 +20,26 @@ from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
-from pwdlib.hashers.bcrypt import BcryptHasher
+from pwdlib.hashers.argon2 import Argon2Hasher
 
 from app.core.config import get_settings
 
-# bcrypt hashes at most 72 bytes of input and (as of bcrypt 5) raises rather
-# than silently truncating anything longer. Callers validate against this limit
-# up front so a long password becomes a clean 422, never a 500.
-BCRYPT_MAX_PASSWORD_BYTES = 72
-
 # A tuple of hashers: the first is used for new hashes, the rest stay valid for
-# verifying old ones. That ordering is what makes a future migration to argon2 a
+# verifying old ones. That ordering is what makes future migrations a
 # one-line change instead of a forced password reset for every user.
-_password_hash = PasswordHash((BcryptHasher(),))
+_password_hash = PasswordHash((Argon2Hasher(),))
 
-# Verifying a password is intentionally slow (~100ms of key stretching), so an
+# Verifying a password is intentionally slow (~40ms of key stretching), so an
 # attacker who steals the table cannot test billions of guesses per second. That
 # same cost is why a login for a *nonexistent* email must still do the work —
 # see `_DUMMY_HASH` below.
 _DUMMY_HASH = _password_hash.hash("a-password-that-is-never-valid")
 
 
-def password_too_long(password: str) -> bool:
-    """True if `password` exceeds what bcrypt can consume.
-
-    The limit is 72 **bytes**, not 72 characters — a password of emoji costs 4
-    bytes each, so a 20-character one can blow the limit. Always measure the
-    UTF-8 encoding, never `len(str)`.
-    """
-    return len(password.encode("utf-8")) > BCRYPT_MAX_PASSWORD_BYTES
-
-
 def hash_password(password: str) -> str:
-    """Return a bcrypt hash (salt included) for storage in `users.password_hash`.
+    """Return an Argon2 hash (salt included) for storage in `users.password_hash`.
 
-    bcrypt generates a fresh random salt per call and embeds it in the output,
+    Argon2 generates a fresh random salt per call and embeds it in the output,
     which is why hashing the same password twice yields different strings — and
     why two users with identical passwords have unrelated hashes.
     """
@@ -62,14 +47,7 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
-    """Check a candidate password against a stored hash.
-
-    Returns False rather than raising on an over-long input: routes validate
-    length first, so reaching here with >72 bytes means the credential could not
-    have been the one we stored anyway.
-    """
-    if password_too_long(plain_password):
-        return False
+    """Check a candidate password against a stored hash."""
     return _password_hash.verify(plain_password, password_hash)
 
 

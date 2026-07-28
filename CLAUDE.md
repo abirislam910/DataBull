@@ -12,7 +12,7 @@ Sensor Telemetry Platform — a FastAPI backend with PostgreSQL+TimescaleDB plus
 
 ## Stack
 
-- **Backend**: Python 3.12, FastAPI, SQLAlchemy 2.0 (typed `Mapped[...]` syntax), Alembic, Pydantic v2, python-jose, pwdlib[bcrypt], APScheduler, anthropic SDK
+- **Backend**: Python 3.12, FastAPI, SQLAlchemy 2.0 (typed `Mapped[...]` syntax), Alembic, Pydantic v2, python-jose, pwdlib[argon2], APScheduler, anthropic SDK
 - **Database**: PostgreSQL 16 with the TimescaleDB extension
 - **Frontend**: Vite, React 18, TypeScript (strict), Tailwind, shadcn/ui, TanStack Query, Recharts
 - **Tests**: pytest, pytest-asyncio, httpx, testcontainers-python

@@ -79,7 +79,7 @@ async def authenticate_user(
     """
     user = await get_user_by_email(session, email)
     if user is None:
-        # Deliberately hash anyway. Skipping the ~100ms bcrypt work here would
+        # Deliberately hash anyway. Skipping the ~100ms argon2 work here would
         # make "no such account" answer noticeably faster than "wrong password",
         # turning response latency into a user-enumeration oracle.
         dummy_verify()

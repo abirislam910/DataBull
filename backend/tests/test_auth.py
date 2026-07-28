@@ -25,7 +25,7 @@ from app.models import User
 def test_hash_is_not_the_password() -> None:
     hashed = hash_password("correct horse battery staple")
     assert "correct horse battery staple" not in hashed
-    assert hashed.startswith("$2b$"), "expected a bcrypt hash"
+    assert hashed.startswith("$argon2id$"), "expected an argon2 hash"
 
 
 def test_same_password_hashes_differently_each_time() -> None:
@@ -42,12 +42,6 @@ def test_verify_rejects_wrong_password() -> None:
     hashed = hash_password("the-real-password")
     assert verify_password("the-real-password", hashed) is True
     assert verify_password("not-the-password", hashed) is False
-
-
-def test_verify_rejects_overlong_password_instead_of_raising() -> None:
-    """bcrypt caps at 72 bytes; we must not blow up on a longer candidate."""
-    hashed = hash_password("a-normal-password")
-    assert verify_password("y" * 200, hashed) is False
 
 
 # --- JWT --------------------------------------------------------------------
@@ -141,18 +135,6 @@ async def test_signup_rejects_short_password(client: AsyncClient) -> None:
     body = resp.json()
     assert body["code"] == "validation_error"
     assert body["field"] == "password"
-
-
-async def test_signup_rejects_password_over_bcrypt_byte_limit(
-    client: AsyncClient,
-) -> None:
-    """Guarded at the schema so the hasher never raises — a 422, not a 500."""
-    resp = await client.post(
-        "/auth/signup",
-        json={"email": "long@example.com", "password": "y" * 73},
-    )
-    assert resp.status_code == 422
-    assert resp.json()["field"] == "password"
 
 
 async def test_signup_rejects_invalid_email(client: AsyncClient) -> None:

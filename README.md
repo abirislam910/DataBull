@@ -23,10 +23,9 @@ POST /auth/login   {email, password}  -> {access_token, token_type: "bearer"}
 GET  /auth/me      Authorization: Bearer <token> -> {id, email, created_at}
 ```
 
-Passwords are hashed with bcrypt (via `pwdlib`) and must be at least 8
+Passwords are hashed with argon2 (via `pwdlib`) and must be at least 8
 characters. There are no composition rules — current NIST guidance favours
-length over forced symbol/case mixes. bcrypt reads at most 72 bytes of input, so
-longer passwords are rejected at validation rather than silently truncated.
+length over forced symbol/case mixes.
 
 ### Documented tradeoffs
 
@@ -49,4 +48,4 @@ invalidates every outstanding token at once.
 
 **Login does not reveal whether an email is registered.** Wrong password and
 unknown account return byte-identical 401s, and the unknown-account path still
-runs a bcrypt comparison so response timing does not leak the difference either.
+runs an argon2 comparison so response timing does not leak the difference either.

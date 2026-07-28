@@ -10,9 +10,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
-
-from app.core.security import BCRYPT_MAX_PASSWORD_BYTES, password_too_long
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # SPEC: minimum 8 characters, no complexity rules — modern NIST guidance favours
 # length over forced symbol/case mixtures, which mostly push users toward
@@ -27,22 +25,6 @@ class Credentials(BaseModel):
     # hand-rolled regex, and normalizes the address.
     email: EmailStr
     password: str = Field(min_length=MIN_PASSWORD_LENGTH)
-
-    @field_validator("password")
-    @classmethod
-    def password_fits_bcrypt(cls, value: str) -> str:
-        """Reject passwords bcrypt cannot consume.
-
-        `Field(min_length=...)` counts characters, but bcrypt's ceiling is 72
-        *bytes*. Checking the encoded length here turns what would otherwise be
-        a 500 from the hasher into a clean 422 with a useful message.
-        """
-        if password_too_long(value):
-            raise ValueError(
-                f"Password must be at most {BCRYPT_MAX_PASSWORD_BYTES} bytes "
-                "when UTF-8 encoded."
-            )
-        return value
 
 
 class TokenResponse(BaseModel):
