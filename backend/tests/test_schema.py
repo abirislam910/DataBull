@@ -8,6 +8,7 @@ is precisely what we declared, and the models still agree with the migration.
 from datetime import timedelta
 
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +24,7 @@ async def test_readings_is_a_hypertable(db_session: AsyncSession) -> None:
             )
         )
     ).scalar_one()
-    assert dims == 1
+    assert dims == 1, "Expected readings to be a hypertable with one dimension (time)"
 
 
 async def test_readings_chunk_interval_is_one_day(db_session: AsyncSession) -> None:
@@ -35,7 +36,9 @@ async def test_readings_chunk_interval_is_one_day(db_session: AsyncSession) -> N
             )
         )
     ).scalar_one()
-    assert interval == timedelta(days=1)
+    assert interval == timedelta(days=1), (
+        "Expected readings to be partitioned into 1-day chunks"
+    )
 
 
 async def test_device_type_enum_values(db_session: AsyncSession) -> None:
@@ -48,7 +51,9 @@ async def test_device_type_enum_values(db_session: AsyncSession) -> None:
         .scalars()
         .all()
     )
-    assert values == ["temperature", "pressure", "flow"]
+    assert values == ["temperature", "pressure", "flow"], (
+        "Expected device_type enum to have exactly the three declared values"
+    )
 
 
 async def test_readings_has_only_declared_indexes(db_session: AsyncSession) -> None:
@@ -65,7 +70,9 @@ async def test_readings_has_only_declared_indexes(db_session: AsyncSession) -> N
         .scalars()
         .all()
     )
-    assert names == ["ix_readings_device_id_time", "pk_readings"]
+    assert names == ["ix_readings_device_id_time", "pk_readings"], (
+        "Expected readings to have only the declared indexes (primary key and device_id-time)"
+    )
 
 
 def test_migration_matches_models(alembic_config: Config) -> None:
@@ -74,3 +81,14 @@ def test_migration_matches_models(alembic_config: Config) -> None:
     container is already migrated to head when this runs.
     """
     command.check(alembic_config)
+
+
+def test_migration_round_trip(alembic_config: Config) -> None:
+    command.downgrade(alembic_config, "base")
+    command.upgrade(alembic_config, "head")
+
+
+def test_single_migration_head(alembic_config: Config) -> None:
+    script = ScriptDirectory.from_config(alembic_config)
+    heads = script.get_heads()
+    assert len(heads) == 1, f"Multiple migration heads detected: {heads}"
