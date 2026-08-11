@@ -94,6 +94,7 @@ def create_access_token(subject: uuid.UUID) -> str:
         # "iat" (issued at) — useful for auditing and for a future
         # "invalidate everything issued before X" check.
         "iat": now,
+        "iss": "DataBull",
     }
     return jwt.encode(claims, settings.secret_key, algorithm=settings.jwt_algorithm)
 

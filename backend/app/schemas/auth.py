@@ -12,10 +12,9 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-# SPEC: minimum 8 characters, no complexity rules — modern NIST guidance favours
-# length over forced symbol/case mixtures, which mostly push users toward
-# predictable substitutions ("Password1!").
-MIN_PASSWORD_LENGTH = 8
+from app.core.config import get_settings
+
+settings = get_settings()
 
 
 class Credentials(BaseModel):
@@ -24,7 +23,7 @@ class Credentials(BaseModel):
     # EmailStr runs real syntax validation (via email-validator) instead of a
     # hand-rolled regex, and normalizes the address.
     email: EmailStr
-    password: str = Field(min_length=MIN_PASSWORD_LENGTH)
+    password: str = Field(min_length=settings.min_password_length)
 
 
 class TokenResponse(BaseModel):

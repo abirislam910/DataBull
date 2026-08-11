@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 from httpx import AsyncClient
 from jose import jwt
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -32,16 +33,20 @@ def test_same_password_hashes_differently_each_time() -> None:
     """A random per-hash salt means identical passwords get unrelated hashes."""
     first = hash_password("same-password")
     second = hash_password("same-password")
-    assert first != second
+    assert first != second, "hashes should differ because of the salt"
     # ...and both still verify.
-    assert verify_password("same-password", first)
-    assert verify_password("same-password", second)
+    assert verify_password("same-password", first), "first hash should verify"
+    assert verify_password("same-password", second), "second hash should verify"
 
 
 def test_verify_rejects_wrong_password() -> None:
     hashed = hash_password("the-real-password")
-    assert verify_password("the-real-password", hashed) is True
-    assert verify_password("not-the-password", hashed) is False
+    assert verify_password("the-real-password", hashed) is True, (
+        "correct password should verify"
+    )
+    assert verify_password("not-the-password", hashed) is False, (
+        "incorrect password should not verify"
+    )
 
 
 # --- JWT --------------------------------------------------------------------
@@ -50,7 +55,9 @@ def test_verify_rejects_wrong_password() -> None:
 def test_token_round_trip() -> None:
     user_id = uuid.uuid4()
     token = create_access_token(user_id)
-    assert decode_access_token(token) == user_id
+    assert decode_access_token(token) == user_id, (
+        "decoded token should yield the original user ID"
+    )
 
 
 def test_token_payload_is_readable_without_the_secret() -> None:
@@ -60,8 +67,10 @@ def test_token_payload_is_readable_without_the_secret() -> None:
 
     claims = jwt.get_unverified_claims(token)
 
-    assert claims["sub"] == str(user_id)
-    assert "exp" in claims and "iat" in claims
+    assert claims["sub"] == str(user_id), "the `sub` claim should be the user ID"
+    assert "exp" in claims and "iat" in claims and "iss" in claims, (
+        "the token should have standard claims"
+    )
 
 
 def test_expired_token_is_rejected() -> None:
@@ -75,7 +84,7 @@ def test_expired_token_is_rejected() -> None:
         settings.secret_key,
         algorithm=settings.jwt_algorithm,
     )
-    assert decode_access_token(expired) is None
+    assert decode_access_token(expired) is None, "expired token should be rejected"
 
 
 def test_token_signed_with_another_secret_is_rejected() -> None:
@@ -86,7 +95,9 @@ def test_token_signed_with_another_secret_is_rejected() -> None:
         "an-attackers-guess-at-the-secret",
         algorithm=settings.jwt_algorithm,
     )
-    assert decode_access_token(forged) is None
+    assert decode_access_token(forged) is None, (
+        "token signed with another secret should be rejected"
+    )
 
 
 def test_tampered_token_is_rejected() -> None:
@@ -95,11 +106,15 @@ def test_tampered_token_is_rejected() -> None:
     header, payload, signature = token.split(".")
     # Flip a character in the payload segment.
     mutated = payload[:-2] + ("A" if payload[-2] != "A" else "B") + payload[-1]
-    assert decode_access_token(f"{header}.{mutated}.{signature}") is None
+    assert decode_access_token(f"{header}.{mutated}.{signature}") is None, (
+        "tampered token should be rejected"
+    )
 
 
 def test_garbage_token_is_rejected() -> None:
-    assert decode_access_token("not-even-a-jwt") is None
+    assert decode_access_token("not-even-a-jwt") is None, (
+        "garbage token should be rejected"
+    )
 
 
 # --- Signup -----------------------------------------------------------------
@@ -113,7 +128,9 @@ async def test_signup_returns_a_usable_token(client: AsyncClient) -> None:
     assert resp.status_code == 201, resp.text
     body = resp.json()
     assert body["token_type"] == "bearer"
-    assert decode_access_token(body["access_token"]) is not None
+    assert decode_access_token(body["access_token"]) is not None, (
+        "the signup endpoint should return a valid access token"
+    )
 
 
 async def test_signup_rejects_duplicate_email(client: AsyncClient) -> None:
@@ -122,8 +139,13 @@ async def test_signup_rejects_duplicate_email(client: AsyncClient) -> None:
     assert first.status_code == 201, first.text
 
     second = await client.post("/auth/signup", json=payload)
-    assert second.status_code == 409
-    assert second.json()["code"] == "email_already_registered"
+    assert second.status_code == 409, second.text
+    assert second.json()["detail"] == "An account with that email already exists.", (
+        "expected correct response detail for duplicate signup"
+    )
+    assert second.json()["code"] == "email_already_registered", (
+        "expected correct response code for duplicate signup"
+    )
 
 
 async def test_signup_rejects_short_password(client: AsyncClient) -> None:
@@ -133,8 +155,12 @@ async def test_signup_rejects_short_password(client: AsyncClient) -> None:
     )
     assert resp.status_code == 422
     body = resp.json()
-    assert body["code"] == "validation_error"
-    assert body["field"] == "password"
+    assert body["code"] == "validation_error", (
+        "expected validation_error code for short password"
+    )
+    assert body["field"] == "password", (
+        "expected password error field for short password"
+    )
 
 
 async def test_signup_rejects_invalid_email(client: AsyncClient) -> None:
@@ -143,7 +169,9 @@ async def test_signup_rejects_invalid_email(client: AsyncClient) -> None:
         json={"email": "not-an-email", "password": "a-good-password"},
     )
     assert resp.status_code == 422
-    assert resp.json()["field"] == "email"
+    assert resp.json()["field"] == "email", (
+        "expected email error field for invalid email"
+    )
 
 
 async def test_signup_does_not_store_plaintext_password(
@@ -153,13 +181,16 @@ async def test_signup_does_not_store_plaintext_password(
         "/auth/signup",
         json={"email": "hashed@example.com", "password": "super-secret-pw"},
     )
-    from sqlalchemy import select
 
     stored = (
         await db_session.execute(select(User).where(User.email == "hashed@example.com"))
     ).scalar_one()
-    assert stored.password_hash != "super-secret-pw"
-    assert verify_password("super-secret-pw", stored.password_hash)
+    assert stored.password_hash != "super-secret-pw", (
+        "the password should be hashed, not stored in plaintext"
+    )
+    assert verify_password("super-secret-pw", stored.password_hash), (
+        "the stored hash should verify the original password"
+    )
 
 
 async def test_signup_normalizes_email_case(client: AsyncClient) -> None:
@@ -173,7 +204,7 @@ async def test_signup_normalizes_email_case(client: AsyncClient) -> None:
         "/auth/signup",
         json={"email": "mixedcase@example.com", "password": "a-good-password"},
     )
-    assert second.status_code == 409
+    assert second.status_code == 409, second.text
 
 
 # --- Login ------------------------------------------------------------------
@@ -189,7 +220,9 @@ async def test_login_succeeds_with_correct_credentials(client: AsyncClient) -> N
         json={"email": "login@example.com", "password": "a-good-password"},
     )
     assert resp.status_code == 200, resp.text
-    assert decode_access_token(resp.json()["access_token"]) is not None
+    assert decode_access_token(resp.json()["access_token"]) is not None, (
+        "the login endpoint should return a valid access token"
+    )
 
 
 async def test_login_is_case_insensitive_on_email(client: AsyncClient) -> None:
@@ -201,7 +234,11 @@ async def test_login_is_case_insensitive_on_email(client: AsyncClient) -> None:
         "/auth/login",
         json={"email": "CASELESS@example.com", "password": "a-good-password"},
     )
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.text
+    token = resp.json()["access_token"]
+    assert decode_access_token(token) is not None, (
+        "the login endpoint should return a valid access token even if the email case differs"
+    )
 
 
 async def test_login_rejects_wrong_password(client: AsyncClient) -> None:
@@ -213,8 +250,13 @@ async def test_login_rejects_wrong_password(client: AsyncClient) -> None:
         "/auth/login",
         json={"email": "wrongpw@example.com", "password": "not-the-password"},
     )
-    assert resp.status_code == 401
-    assert resp.json()["code"] == "invalid_credentials"
+    assert resp.status_code == 401, resp.text
+    assert resp.json()["detail"] == "Incorrect email or password.", (
+        "expected correct response detail for wrong password"
+    )
+    assert resp.json()["code"] == "invalid_credentials", (
+        "expected invalid_credentials code for wrong password"
+    )
 
 
 async def test_login_does_not_reveal_whether_the_email_exists(
@@ -231,10 +273,14 @@ async def test_login_does_not_reveal_whether_the_email_exists(
     )
     unknown_email = await client.post(
         "/auth/login",
-        json={"email": "nobody@example.com", "password": "not-the-password"},
+        json={"email": "nobody@example.com", "password": "a-good-passwordd"},
     )
-    assert wrong_password.status_code == unknown_email.status_code == 401
-    assert wrong_password.json() == unknown_email.json()
+    assert wrong_password.status_code == unknown_email.status_code == 401, (
+        "both wrong password and unknown email should return 401"
+    )
+    assert wrong_password.json() == unknown_email.json(), (
+        "both wrong password and unknown email should return the same response body"
+    )
 
 
 # --- GET /auth/me -----------------------------------------------------------
@@ -246,28 +292,42 @@ async def test_me_returns_the_authenticated_user(
     resp = await authed_client.get("/auth/me")
     assert resp.status_code == 200, resp.text
     body = resp.json()
-    assert body["id"] == str(user.id)
-    assert body["email"] == user.email
-    assert "created_at" in body
+    assert body["id"] == str(user.id), (
+        "expected the authenticated user's ID in the response"
+    )
+    assert body["email"] == user.email, (
+        "expected the authenticated user's email in the response"
+    )
+    assert "created_at" in body, (
+        "expected the authenticated user's creation timestamp in the response"
+    )
 
 
 async def test_me_never_exposes_the_password_hash(authed_client: AsyncClient) -> None:
     resp = await authed_client.get("/auth/me")
-    assert "password_hash" not in resp.json()
+    assert "password_hash" not in resp.json(), (
+        "the /auth/me endpoint should never expose the password hash"
+    )
 
 
 async def test_me_requires_a_token(client: AsyncClient) -> None:
     resp = await client.get("/auth/me")
-    assert resp.status_code == 401
-    assert resp.json()["code"] == "not_authenticated"
-    assert resp.headers["WWW-Authenticate"] == "Bearer"
+    assert resp.status_code == 401, resp.text
+    assert resp.json()["code"] == "not_authenticated", (
+        "expected not_authenticated code when no token is provided"
+    )
+    assert resp.headers["WWW-Authenticate"] == "Bearer", (
+        "expected WWW-Authenticate header to indicate Bearer token is required"
+    )
 
 
 async def test_me_rejects_a_garbage_token(client: AsyncClient) -> None:
     client.headers["Authorization"] = "Bearer not-a-real-token"
     resp = await client.get("/auth/me")
-    assert resp.status_code == 401
-    assert resp.json()["code"] == "invalid_token"
+    assert resp.status_code == 401, resp.text
+    assert resp.json()["code"] == "invalid_token", (
+        "expected invalid_token code for garbage token"
+    )
 
 
 async def test_me_rejects_a_token_for_a_deleted_user(
@@ -289,5 +349,7 @@ async def test_me_rejects_a_token_for_a_deleted_user(
 
     client.headers["Authorization"] = f"Bearer {token}"
     resp = await client.get("/auth/me")
-    assert resp.status_code == 401
-    assert resp.json()["code"] == "invalid_token"
+    assert resp.status_code == 401, resp.text
+    assert resp.json()["code"] == "invalid_token", (
+        "expected invalid_token code for token of deleted user"
+    )

@@ -7,21 +7,15 @@ discarded. It is never logged and never stored in plaintext.
 
 from __future__ import annotations
 
-from typing import Annotated
+from fastapi import APIRouter, status
 
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.deps import CurrentUser
-from app.core.errors import APIError
+from app.core.deps import CurrentUser, DbSession
+from app.core.errors import AuthErr
 from app.core.security import create_access_token
-from app.db.session import get_db
 from app.schemas.auth import Credentials, TokenResponse, UserResponse
 from app.services.auth import authenticate_user, create_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
 @router.post(
@@ -41,11 +35,9 @@ async def login(credentials: Credentials, session: DbSession) -> TokenResponse:
         # One message for both "unknown email" and "wrong password". Saying
         # which was wrong would let anyone probe the endpoint to discover who
         # has an account here.
-        raise APIError(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+        raise AuthErr(
             detail="Incorrect email or password.",
             code="invalid_credentials",
-            headers={"WWW-Authenticate": "Bearer"},
         )
     return TokenResponse(access_token=create_access_token(user.id))
 
