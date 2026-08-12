@@ -28,6 +28,9 @@ jobs:
 
       - name: Install (with dev extras)
         run: pip install ".[dev]"
+      
+      - name: Run package audit (pip-audit)
+        run: pip-audit .
 
       - name: Lint (ruff)
         run: ruff check .

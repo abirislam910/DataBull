@@ -30,7 +30,7 @@ dev = [
     "testcontainers",
     "ruff",
     "mypy",
-    "types-python-jose",
+    "pip-audit>=2.10.1"
 ]
 
 # Only the app package is importable/installable; alembic/ and tests/ are not
