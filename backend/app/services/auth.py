@@ -87,3 +87,9 @@ async def authenticate_user(
     if not verify_password(password, user.password_hash):
         return None
     return user
+
+
+async def delete_user(session: AsyncSession, user: User) -> None:
+    """Delete a user account."""
+    await session.delete(user)
+    await session.commit()

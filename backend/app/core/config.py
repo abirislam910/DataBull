@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     # entire session lifetime — the user re-logs in after it lapses.
     access_token_expire_minutes: int = 60 * 24
 
+    # SPEC: minimum 8 characters, no complexity rules — modern NIST guidance favours
+    # length over forced symbol/case mixtures, which mostly push users toward
+    # predictable substitutions ("Password1!").
+    min_password_length: int = 8
+
 
 @lru_cache
 def get_settings() -> Settings:
