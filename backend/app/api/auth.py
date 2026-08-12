@@ -10,10 +10,15 @@ from __future__ import annotations
 from fastapi import APIRouter, status
 
 from app.core.deps import CurrentUser, DbSession
-from app.core.errors import AuthErr
-from app.core.security import create_access_token
-from app.schemas.auth import Credentials, TokenResponse, UserResponse
-from app.services.auth import authenticate_user, create_user
+from app.core.errors import APIError, AuthErr
+from app.core.security import create_access_token, verify_password
+from app.schemas.auth import (
+    Credentials,
+    DeleteAccountRequest,
+    TokenResponse,
+    UserResponse,
+)
+from app.services.auth import authenticate_user, create_user, delete_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -46,3 +51,16 @@ async def login(credentials: Credentials, session: DbSession) -> TokenResponse:
 async def read_current_user(current_user: CurrentUser) -> UserResponse:
     """Return the authenticated user. Useful for the frontend to rehydrate state."""
     return UserResponse.model_validate(current_user)
+
+
+@router.post("/me/delete", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_current_user(
+    body: DeleteAccountRequest, current_user: CurrentUser, session: DbSession
+) -> None:
+    if not verify_password(body.password, current_user.password_hash):
+        raise APIError(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password.",
+            code="invalid_credentials",
+        )
+    await delete_user(session, current_user)

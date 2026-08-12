@@ -14,7 +14,7 @@ dependencies = [
     "alembic",
     "pydantic[email]>=2",
     "pydantic-settings",
-    "python-jose[cryptography]",
+    "pyjwt[crypto]",
     "pwdlib[argon2]",
     "apscheduler",
     "anthropic",

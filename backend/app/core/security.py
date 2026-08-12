@@ -18,7 +18,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from jose import JWTError, jwt
+import jwt
 from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
 
@@ -124,7 +124,7 @@ def decode_access_token(token: str) -> uuid.UUID | None:
             settings.secret_key,
             algorithms=[settings.jwt_algorithm],
         )
-    except JWTError:
+    except jwt.exceptions.PyJWTError:
         return None
 
     subject = payload.get("sub")

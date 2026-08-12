@@ -45,3 +45,7 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     email: EmailStr
     created_at: datetime
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str

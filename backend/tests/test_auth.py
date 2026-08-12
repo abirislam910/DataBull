@@ -6,8 +6,8 @@ import uuid
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 
+import jwt
 from httpx import AsyncClient
-from jose import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -65,7 +65,14 @@ def test_token_payload_is_readable_without_the_secret() -> None:
     user_id = uuid.uuid4()
     token = create_access_token(user_id)
 
-    claims = jwt.get_unverified_claims(token)
+    settings = get_settings()
+
+    claims = jwt.decode(
+        token,
+        settings.secret_key,
+        algorithms=[settings.jwt_algorithm],
+        options={"verify_signature": False},
+    )
 
     assert claims["sub"] == str(user_id), "the `sub` claim should be the user ID"
     assert "exp" in claims and "iat" in claims and "iss" in claims, (
@@ -352,4 +359,47 @@ async def test_me_rejects_a_token_for_a_deleted_user(
     assert resp.status_code == 401, resp.text
     assert resp.json()["code"] == "invalid_token", (
         "expected invalid_token code for token of deleted user"
+    )
+
+
+# --- POST /auth/me/delete -----------------------------------------------------------
+
+
+async def test_delete_me_removes_the_user(
+    authed_client: AsyncClient, db_session: AsyncSession, user: User
+) -> None:
+    resp = await authed_client.post(
+        "/auth/me/delete", json={"password": "a-good-password"}
+    )
+    assert resp.status_code == 204, resp.text
+
+    # The user should be gone from the database.
+    deleted = await db_session.get(User, user.id)
+    assert deleted is None, "the user should be deleted from the database"
+
+
+async def test_delete_me_rejects_wrong_password(
+    authed_client: AsyncClient, db_session: AsyncSession, user: User
+) -> None:
+    resp = await authed_client.post(
+        "/auth/me/delete", json={"password": "not-the-password"}
+    )
+    assert resp.status_code == 401, resp.text
+    assert resp.json()["code"] == "invalid_credentials", (
+        "expected invalid_credentials code for wrong password"
+    )
+
+    # The user should still exist in the database.
+    still_there = await db_session.get(User, user.id)
+    assert still_there is not None, "the user should not be deleted with wrong password"
+
+
+async def test_delete_me_requires_a_token(client: AsyncClient) -> None:
+    resp = await client.post("/auth/me/delete", json={"password": "a-good-password"})
+    assert resp.status_code == 401, resp.text
+    assert resp.json()["code"] == "not_authenticated", (
+        "expected not_authenticated code when no token is provided"
+    )
+    assert resp.headers["WWW-Authenticate"] == "Bearer", (
+        "expected WWW-Authenticate header to indicate Bearer token is required"
     )
