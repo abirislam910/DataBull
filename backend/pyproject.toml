@@ -20,6 +20,7 @@ dependencies = [
     "anthropic",
     "numpy",
     "psycopg[binary]",
+    "cachetools"
 ]
 
 [project.optional-dependencies]
