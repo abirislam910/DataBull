@@ -18,7 +18,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from jose import JWTError, jwt
+import jwt
 from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
 
@@ -94,6 +94,7 @@ def create_access_token(subject: uuid.UUID) -> str:
         # "iat" (issued at) — useful for auditing and for a future
         # "invalidate everything issued before X" check.
         "iat": now,
+        "iss": "DataBull",
     }
     return jwt.encode(claims, settings.secret_key, algorithm=settings.jwt_algorithm)
 
@@ -123,7 +124,7 @@ def decode_access_token(token: str) -> uuid.UUID | None:
             settings.secret_key,
             algorithms=[settings.jwt_algorithm],
         )
-    except JWTError:
+    except jwt.exceptions.PyJWTError:
         return None
 
     subject = payload.get("sub")

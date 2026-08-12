@@ -46,6 +46,18 @@ class APIError(Exception):
         return body
 
 
+def AuthErr(detail: str, code: str) -> APIError:
+    """Build a 401 carrying the RFC 6750 challenge header."""
+    return APIError(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=detail,
+        code=code,
+        # Required by the spec for 401s on bearer-protected resources; tells the
+        # client which scheme to retry with.
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     """Install handlers so every error leaves the API in the documented shape."""
 
@@ -92,3 +104,13 @@ def register_exception_handlers(app: FastAPI) -> None:
             content=error.to_body(),
             headers=getattr(exc, "headers", None),
         )
+
+    @app.exception_handler(Exception)
+    async def _unhandled_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+
+        error = APIError(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal Server Error",
+            code="internal_server_error",
+        )
+        return JSONResponse(status_code=error.status_code, content=error.to_body())

@@ -7,35 +7,27 @@ its auth requirement, and FastAPI surfaces the lock icon in the OpenAPI docs.
 
 from __future__ import annotations
 
+import uuid
 from typing import Annotated
 
-from fastapi import Depends, status
+from cachetools import TTLCache
+from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import APIError
+from app.core.errors import AuthErr
 from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models import User
 from app.services.auth import get_user_by_id
+
+_user_exists_cache: TTLCache[uuid.UUID, bool] = TTLCache(maxsize=10_000, ttl=30)
 
 # Parses `Authorization: Bearer <token>`. auto_error=False makes a missing or
 # malformed header yield None instead of FastAPI's own 403 with a bare
 # `{"detail": ...}` body — we want our documented `{detail, code}` shape and a
 # 401 instead.
 bearer_scheme = HTTPBearer(auto_error=False)
-
-
-def _unauthorized(detail: str, code: str) -> APIError:
-    """Build a 401 carrying the RFC 6750 challenge header."""
-    return APIError(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail=detail,
-        code=code,
-        # Required by the spec for 401s on bearer-protected resources; tells the
-        # client which scheme to retry with.
-        headers={"WWW-Authenticate": "Bearer"},
-    )
 
 
 async def get_current_user(
@@ -56,15 +48,20 @@ async def get_current_user(
     than trusting the claims alone.
     """
     if credentials is None:
-        raise _unauthorized("Not authenticated.", "not_authenticated")
+        raise AuthErr("Not authenticated.", "not_authenticated")
 
     user_id = decode_access_token(credentials.credentials)
     if user_id is None:
-        raise _unauthorized("Invalid or expired token.", "invalid_token")
+        raise AuthErr("Invalid or expired token.", "invalid_token")
+
+    if user_id in _user_exists_cache and not _user_exists_cache[user_id]:
+        raise AuthErr("Invalid or expired token.", "invalid_token")
 
     user = await get_user_by_id(session, user_id)
     if user is None:
-        raise _unauthorized("Invalid or expired token.", "invalid_token")
+        raise AuthErr("Invalid or expired token.", "invalid_token")
+
+    _user_exists_cache[user_id] = user is not None
 
     return user
 
@@ -72,3 +69,5 @@ async def get_current_user(
 # Alias so routes can write `current_user: CurrentUser` instead of repeating the
 # full Annotated[...] spelling.
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+DbSession = Annotated[AsyncSession, Depends(get_db)]

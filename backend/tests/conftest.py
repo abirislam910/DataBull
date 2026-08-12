@@ -22,6 +22,8 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
+from app.core.security import hash_password
+
 # SECRET_KEY is a required setting with no default, so the app refuses to import
 # without it. Set a throwaway value before importing anything under `app.`,
 # which reads settings at import time. `setdefault` so a real env var still wins.
@@ -142,7 +144,9 @@ def make_user(db_session: AsyncSession) -> Callable[..., Awaitable[User]]:
         created += 1
         user = User(
             email=overrides.get("email", f"user{created}@example.com"),
-            password_hash=overrides.get("password_hash", "not-a-real-hash"),
+            password_hash=overrides.get(
+                "password_hash", hash_password("a-good-password")
+            ),
         )
         db_session.add(user)
         await db_session.flush()
