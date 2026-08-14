@@ -58,6 +58,15 @@ def AuthErr(detail: str, code: str) -> APIError:
     )
 
 
+def NotFoundErr(detail: str, code: str) -> APIError:
+    """Build a 404 error."""
+    return APIError(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=detail,
+        code=code,
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     """Install handlers so every error leaves the API in the documented shape."""
 
