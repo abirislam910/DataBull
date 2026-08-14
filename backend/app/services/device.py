@@ -17,23 +17,9 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import APIError
+from app.core.errors import APIError, NotFoundErr
 from app.models import Device, User
-from app.schemas.device import DeviceCreate
-
-
-def _not_found() -> APIError:
-    """404 for a device that does not exist *or* belongs to someone else.
-
-    Returning 403 for the second case would confirm the id is real, letting a
-    caller probe for other users' device ids. An indistinguishable 404 leaks
-    nothing: "not yours" and "not there" look identical from outside.
-    """
-    return APIError(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Device not found.",
-        code="device_not_found",
-    )
+from app.schemas.device import DeviceCreate, DeviceUpdate
 
 
 async def create_device(
@@ -95,7 +81,33 @@ async def get_owned_device(
     )
     device = result.scalar_one_or_none()
     if device is None:
-        raise _not_found()
+        raise NotFoundErr(
+            detail="Device not found.",
+            code="device_not_found",
+        )
+    return device
+
+
+async def update_device(
+    session: AsyncSession, owner: User, device_id: uuid.UUID, data: DeviceUpdate
+) -> Device:
+    """Update one of `owner`'s devices, or raise 404."""
+    device = await get_owned_device(session, owner, device_id)
+    if data.name is not None:
+        device.name = data.name
+    device.min_threshold = data.min_threshold
+    device.max_threshold = data.max_threshold
+    try:
+        await session.flush()
+    except IntegrityError as exc:
+        await session.rollback()
+        raise APIError(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You already have a device with that name.",
+            code="device_name_taken",
+            field="name",
+        ) from exc
+    await session.commit()
     return device
 
 

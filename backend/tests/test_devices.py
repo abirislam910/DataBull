@@ -25,7 +25,7 @@ def auth_header(user: User) -> dict[str, str]:
     return {"Authorization": f"Bearer {create_access_token(user.id)}"}
 
 
-# --- Create -----------------------------------------------------------------
+# --- POST /devices -----------------------------------------------------------------
 
 
 async def test_create_device(authed_client: AsyncClient) -> None:
@@ -105,7 +105,7 @@ async def test_same_name_for_different_users_is_allowed(
     assert theirs.json()["id"] != mine.json()["id"]
 
 
-# --- List -------------------------------------------------------------------
+# --- GET /devices -------------------------------------------------------------------
 
 
 async def test_list_is_empty_for_a_new_user(authed_client: AsyncClient) -> None:
@@ -141,7 +141,7 @@ async def test_list_requires_authentication(client: AsyncClient) -> None:
     assert resp.status_code == 401
 
 
-# --- Retrieve ---------------------------------------------------------------
+# --- GET /devices/{device_id} ---------------------------------------------------------------
 
 
 async def test_get_own_device(authed_client: AsyncClient) -> None:
@@ -193,7 +193,122 @@ async def test_get_rejects_a_malformed_id(authed_client: AsyncClient) -> None:
     assert resp.status_code == 422
 
 
-# --- Delete -----------------------------------------------------------------
+# --- PATCH /devices/{device_id} -------------------------------------------------------------
+
+
+async def test_update_own_device(authed_client: AsyncClient) -> None:
+    created = await authed_client.post("/devices", json=VALID_DEVICE)
+    device_id = created.json()["id"]
+
+    updated = await authed_client.patch(
+        f"/devices/{device_id}",
+        json={"name": "New Name", "unit": "Pa", "min_threshold": 10.0, "max_threshold": 90.0},
+    )
+    assert updated.status_code == 200
+    body = updated.json()
+    assert body["id"] == device_id
+    assert body["name"] == "New Name"
+    assert body["unit"] == "Pa"
+    assert body["min_threshold"] == 10.0
+    assert body["max_threshold"] == 90.0
+
+
+async def test_update_another_users_device_is_refused(
+    authed_client: AsyncClient,
+    make_user: Callable[..., Awaitable[User]],
+    make_device: Callable[..., Awaitable[Device]],
+) -> None:
+    stranger = await make_user(email="stranger@example.com")
+    their_device = await make_device(stranger, name="Not-Yours")
+
+    resp = await authed_client.patch(
+        f"/devices/{their_device.id}", json={"name": "New Name"}
+    )
+    assert resp.status_code == 404
+
+
+async def test_update_requires_authentication(
+    client: AsyncClient, device: Device
+) -> None:
+    resp = await client.patch(f"/devices/{device.id}", json={"name": "New Name"})
+    assert resp.status_code == 401
+
+
+async def test_update_rejects_inverted_thresholds(authed_client: AsyncClient) -> None:
+    created = await authed_client.post("/devices", json=VALID_DEVICE)
+    device_id = created.json()["id"]
+
+    resp = await authed_client.patch(
+        f"/devices/{device_id}", json={"min_threshold": 90.0, "max_threshold": 10.0}
+    )
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "validation_error"
+
+
+async def test_update_rejects_blank_name(authed_client: AsyncClient) -> None:
+    created = await authed_client.post("/devices", json=VALID_DEVICE)
+    device_id = created.json()["id"]
+
+    updated = await authed_client.patch(f"/devices/{device_id}", json={"name": ""})
+    assert updated.status_code == 422
+
+
+async def test_update_rejects_blank_unit(authed_client: AsyncClient) -> None:
+    created = await authed_client.post("/devices", json=VALID_DEVICE)
+    device_id = created.json()["id"]
+
+    updated = await authed_client.patch(f"/devices/{device_id}", json={"unit": ""})
+    assert updated.status_code == 422
+
+
+async def test_update_enforces_max_length_on_name(authed_client: AsyncClient) -> None:
+    created = await authed_client.post("/devices", json=VALID_DEVICE)
+    device_id = created.json()["id"]
+
+    updated = await authed_client.patch(
+        f"/devices/{device_id}", json={"name": "x" * 256}
+    )
+    assert updated.status_code == 422
+
+async def test_update_enforces_max_length_on_unit(authed_client: AsyncClient) -> None:
+    created = await authed_client.post("/devices", json=VALID_DEVICE)
+    device_id = created.json()["id"]
+
+    updated = await authed_client.patch(
+        f"/devices/{device_id}", json={"unit": "x" * 33}
+    )
+    assert updated.status_code == 422
+
+async def test_update_can_clear_a_threshold(authed_client: AsyncClient) -> None:
+    created = await authed_client.post(
+        "/devices",
+        json={**VALID_DEVICE, "min_threshold": 10.0, "max_threshold": 90.0},
+    )
+    device_id = created.json()["id"]
+
+    updated = await authed_client.patch(
+        f"/devices/{device_id}", json={"min_threshold": None}
+    )
+    assert updated.status_code == 200
+    assert updated.json()["min_threshold"] is None
+    assert updated.json()["max_threshold"] == 90.0
+
+
+async def test_update_rejects_duplicate_name_for_same_user(
+    authed_client: AsyncClient,
+) -> None:
+    await authed_client.post("/devices", json=VALID_DEVICE)
+    second = await authed_client.post(
+        "/devices", json={**VALID_DEVICE, "name": "Other Name"}
+    )
+
+    resp = await authed_client.patch(
+        f"/devices/{second.json()['id']}", json={"name": "Pump-3"}
+    )
+    assert resp.status_code == 409
+    assert resp.json()["code"] == "device_name_taken"
+
+# --- DELETE /devices/{device_id} -------------------------------------------------------------
 
 
 async def test_delete_own_device(authed_client: AsyncClient) -> None:

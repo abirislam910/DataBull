@@ -11,12 +11,13 @@ import uuid
 from fastapi import APIRouter, status
 
 from app.core.deps import CurrentUser, DbSession
-from app.schemas.device import DeviceCreate, DeviceResponse
+from app.schemas.device import DeviceCreate, DeviceResponse, DeviceUpdate
 from app.services.device import (
     create_device,
     delete_device,
     get_owned_device,
     list_devices,
+    update_device,
 )
 
 router = APIRouter(prefix="/devices", tags=["devices"])
@@ -44,6 +45,18 @@ async def show(
 ) -> DeviceResponse:
     """Fetch one device by id — 404 unless the caller owns it."""
     device = await get_owned_device(session, current_user, device_id)
+    return DeviceResponse.model_validate(device)
+
+
+@router.patch("/{device_id}", response_model=DeviceResponse)
+async def update(
+    device_id: uuid.UUID,
+    payload: DeviceUpdate,
+    session: DbSession,
+    current_user: CurrentUser,
+) -> DeviceResponse:
+    """Update one of the caller's devices."""
+    device = await update_device(session, current_user, device_id, payload)
     return DeviceResponse.model_validate(device)
 
 

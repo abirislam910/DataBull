@@ -124,7 +124,7 @@ def test_garbage_token_is_rejected() -> None:
     )
 
 
-# --- Signup -----------------------------------------------------------------
+# --- POST /auth/signup -----------------------------------------------------------------
 
 
 async def test_signup_returns_a_usable_token(client: AsyncClient) -> None:
@@ -214,7 +214,7 @@ async def test_signup_normalizes_email_case(client: AsyncClient) -> None:
     assert second.status_code == 409, second.text
 
 
-# --- Login ------------------------------------------------------------------
+# --- POST /auth/login ------------------------------------------------------------------
 
 
 async def test_login_succeeds_with_correct_credentials(client: AsyncClient) -> None:

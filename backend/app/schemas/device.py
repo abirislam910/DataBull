@@ -45,6 +45,27 @@ class DeviceCreate(BaseModel):
         return self
 
 
+class DeviceUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    unit: str | None = Field(default=None, min_length=1, max_length=32)
+    min_threshold: float | None = None
+    max_threshold: float | None = None
+
+    @model_validator(mode="after")
+    def thresholds_must_be_ordered(self) -> Self:
+        """Reject an inverted band, which could never produce a sane alert.
+
+        Runs in "after" mode because it needs both fields parsed — a field
+        validator only sees one at a time.
+        """
+        if (
+            self.min_threshold is not None
+            and self.max_threshold is not None
+            and self.min_threshold >= self.max_threshold
+        ):
+            raise ValueError("min_threshold must be less than max_threshold.")
+        return self
+
 class DeviceResponse(BaseModel):
     """Public view of a device."""
 
