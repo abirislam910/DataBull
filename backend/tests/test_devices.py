@@ -202,13 +202,16 @@ async def test_update_own_device(authed_client: AsyncClient) -> None:
 
     updated = await authed_client.patch(
         f"/devices/{device_id}",
-        json={"name": "New Name", "unit": "Pa", "min_threshold": 10.0, "max_threshold": 90.0},
+        json={
+            "name": "New Name",
+            "min_threshold": 10.0,
+            "max_threshold": 90.0,
+        },
     )
     assert updated.status_code == 200
     body = updated.json()
     assert body["id"] == device_id
     assert body["name"] == "New Name"
-    assert body["unit"] == "Pa"
     assert body["min_threshold"] == 10.0
     assert body["max_threshold"] == 90.0
 
@@ -253,14 +256,6 @@ async def test_update_rejects_blank_name(authed_client: AsyncClient) -> None:
     assert updated.status_code == 422
 
 
-async def test_update_rejects_blank_unit(authed_client: AsyncClient) -> None:
-    created = await authed_client.post("/devices", json=VALID_DEVICE)
-    device_id = created.json()["id"]
-
-    updated = await authed_client.patch(f"/devices/{device_id}", json={"unit": ""})
-    assert updated.status_code == 422
-
-
 async def test_update_enforces_max_length_on_name(authed_client: AsyncClient) -> None:
     created = await authed_client.post("/devices", json=VALID_DEVICE)
     device_id = created.json()["id"]
@@ -270,14 +265,6 @@ async def test_update_enforces_max_length_on_name(authed_client: AsyncClient) ->
     )
     assert updated.status_code == 422
 
-async def test_update_enforces_max_length_on_unit(authed_client: AsyncClient) -> None:
-    created = await authed_client.post("/devices", json=VALID_DEVICE)
-    device_id = created.json()["id"]
-
-    updated = await authed_client.patch(
-        f"/devices/{device_id}", json={"unit": "x" * 33}
-    )
-    assert updated.status_code == 422
 
 async def test_update_can_clear_a_threshold(authed_client: AsyncClient) -> None:
     created = await authed_client.post(
@@ -307,6 +294,21 @@ async def test_update_rejects_duplicate_name_for_same_user(
     )
     assert resp.status_code == 409
     assert resp.json()["code"] == "device_name_taken"
+
+
+async def test_update_ignores_omitted_fields(authed_client: AsyncClient) -> None:
+    created = await authed_client.post(
+        "/devices",
+        json={**VALID_DEVICE, "min_threshold": 10.0, "max_threshold": 90.0},
+    )
+    device_id = created.json()["id"]
+
+    updated = await authed_client.patch(f"/devices/{device_id}", json={"name": "New"})
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "New"
+    assert updated.json()["min_threshold"] == 10.0
+    assert updated.json()["max_threshold"] == 90.0
+
 
 # --- DELETE /devices/{device_id} -------------------------------------------------------------
 

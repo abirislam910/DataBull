@@ -47,7 +47,6 @@ class DeviceCreate(BaseModel):
 
 class DeviceUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
-    unit: str | None = Field(default=None, min_length=1, max_length=32)
     min_threshold: float | None = None
     max_threshold: float | None = None
 
@@ -65,6 +64,7 @@ class DeviceUpdate(BaseModel):
         ):
             raise ValueError("min_threshold must be less than max_threshold.")
         return self
+
 
 class DeviceResponse(BaseModel):
     """Public view of a device."""

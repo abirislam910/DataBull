@@ -93,10 +93,9 @@ async def update_device(
 ) -> Device:
     """Update one of `owner`'s devices, or raise 404."""
     device = await get_owned_device(session, owner, device_id)
-    if data.name is not None:
-        device.name = data.name
-    device.min_threshold = data.min_threshold
-    device.max_threshold = data.max_threshold
+    updates = data.model_dump(exclude_unset=True)
+    for field, value in updates.items():
+        setattr(device, field, value)
     try:
         await session.flush()
     except IntegrityError as exc:
