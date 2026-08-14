@@ -84,10 +84,22 @@ All responses JSON. All times UTC, ISO 8601. Errors follow `{"detail": "...", "c
 ### Readings (protected)
 
 - `POST /devices/{id}/readings` — `{value, time?}` → Reading
-- `POST /devices/{id}/readings/bulk` — `[{value, time}, ...]` → `{count}`
-- `GET /readings?device_id=&start=&end=&limit=` → `list[Reading]`
-- `GET /readings/aggregate?device_id=&window=1h|1d|1w&fn=avg|min|max|p95&start=&end=` → `list[{bucket, value}]`
-- `GET /readings/alerts?device_id?&since=` → `list[Alert]`
+- `POST /devices/{id}/readings/bulk` — `[{value, time}, ...]` → `{count}` — `time` is **required** per item (a batch defaulting to "now" would collide on the `(time, device_id)` primary key). Max 10,000 items per call.
+- `GET /readings?device_id=&start=&end=&limit=` → `list[Reading]` — `device_id` required; `start`/`end` optional; `limit` defaults to 1000, max 10,000. Newest first.
+- `GET /readings/aggregate?device_id=&window=1h|1d|1w&fn=avg|min|max|p95&start=&end=` → `list[{bucket, value}]` — oldest bucket first; empty buckets are omitted, not gap-filled.
+- `GET /readings/alerts?device_id?&since=&limit=` → `list[Alert]` — `limit` defaults to 1000, max 10,000. Newest first.
+
+Time windows are half-open `[start, end)` so adjacent windows tile without double-counting. All timestamps are normalized to UTC on input; a naive timestamp is read as already-UTC.
+
+Reading requests/responses that hit a device the caller does not own return `404 device_not_found`, never `403` — a 403 would confirm the id is real.
+
+**Alert shape** (derived at query time from readings vs. the owning device's thresholds; there is no alerts table, so editing a threshold retroactively changes what counts as an alert):
+
+```json
+{"device_id": "...", "device_name": "Pump-3", "unit": "L/min",
+ "time": "2026-03-01T12:02:00Z", "value": 95.0,
+ "bound": "max", "threshold": 90.0}
+```
 
 ### Chat (protected)
 
