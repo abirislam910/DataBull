@@ -157,7 +157,7 @@ async def test_bulk_rejects_oversized_batch(
     authed_client: AsyncClient, device: Device
 ) -> None:
     rows = [
-        {"value": 1.0, "time": iso(BASE + timedelta(seconds=i))} for i in range(10_001)
+        {"value": 1.0, "time": iso(BASE + timedelta(seconds=i))} for i in range(10001)
     ]
     resp = await authed_client.post(f"/devices/{device.id}/readings/bulk", json=rows)
     assert resp.status_code == 422
@@ -204,7 +204,7 @@ async def test_list_readings_window_is_half_open(
     ]
     await authed_client.post(f"/devices/{device.id}/readings/bulk", json=rows)
 
-    resp = await authed_client.get(
+    left = await authed_client.get(
         "/readings",
         params={
             "device_id": str(device.id),
@@ -212,7 +212,17 @@ async def test_list_readings_window_is_half_open(
             "end": iso(BASE + timedelta(hours=3)),
         },
     )
-    assert sorted(r["value"] for r in resp.json()) == [1.0, 2.0]
+
+    right = await authed_client.get(
+        "/readings",
+        params={
+            "device_id": str(device.id),
+            "start": iso(BASE + timedelta(hours=3)),
+            "end": iso(BASE + timedelta(hours=4)),
+        }
+    )
+    assert sorted(r["value"] for r in left.json()) == [1.0, 2.0]
+    assert sorted(r["value"] for r in right.json()) == [3.0]
 
 
 async def test_list_readings_rejects_inverted_window(
@@ -233,7 +243,7 @@ async def test_list_readings_rejects_excessive_limit(
     authed_client: AsyncClient, device: Device
 ) -> None:
     resp = await authed_client.get(
-        "/readings", params={"device_id": str(device.id), "limit": 10_001}
+        "/readings", params={"device_id": str(device.id), "limit": 10001}
     )
     assert resp.status_code == 422
 
@@ -279,7 +289,7 @@ async def test_aggregate_avg_buckets_by_hour(
 
     resp = await authed_client.get(
         "/readings/aggregate",
-        params={"device_id": str(device.id), "window": "1h", "fn": "avg"},
+        params={"device_id": str(device.id), "window": "1h", "fn": "avg", "start": iso(BASE), "end": iso(BASE + timedelta(hours=2))},
     )
     assert resp.status_code == 200, resp.text
     buckets = resp.json()
@@ -298,9 +308,9 @@ async def test_aggregate_min_max(authed_client: AsyncClient, device: Device) -> 
     await authed_client.post(f"/devices/{device.id}/readings/bulk", json=rows)
 
     params = {"device_id": str(device.id), "window": "1h"}
-    low = await authed_client.get("/readings/aggregate", params={**params, "fn": "min"})
+    low = await authed_client.get("/readings/aggregate", params={**params, "fn": "min", "start": iso(BASE), "end": iso(BASE + timedelta(hours=1))})
     high = await authed_client.get(
-        "/readings/aggregate", params={**params, "fn": "max"}
+        "/readings/aggregate", params={**params, "fn": "max", "start": iso(BASE), "end": iso(BASE + timedelta(hours=1))}
     )
     assert [b["value"] for b in low.json()] == [-3.0]
     assert [b["value"] for b in high.json()] == [15.0]
@@ -316,7 +326,7 @@ async def test_aggregate_p95(authed_client: AsyncClient, device: Device) -> None
 
     resp = await authed_client.get(
         "/readings/aggregate",
-        params={"device_id": str(device.id), "window": "1h", "fn": "p95"},
+        params={"device_id": str(device.id), "window": "1h", "fn": "p95", "start": iso(BASE), "end": iso(BASE + timedelta(hours=1))},
     )
     assert resp.status_code == 200, resp.text
     assert resp.json()[0]["value"] == 95.05
@@ -334,7 +344,7 @@ async def test_aggregate_daily_window(
 
     resp = await authed_client.get(
         "/readings/aggregate",
-        params={"device_id": str(device.id), "window": "1d", "fn": "avg"},
+        params={"device_id": str(device.id), "window": "1d", "fn": "avg", "start": iso(BASE), "end": iso(BASE + timedelta(days=2))},
     )
     assert [b["value"] for b in resp.json()] == [2.0, 10.0]
 
@@ -379,7 +389,7 @@ async def test_aggregate_empty_range_returns_empty_list(
 ) -> None:
     resp = await authed_client.get(
         "/readings/aggregate",
-        params={"device_id": str(device.id), "window": "1h", "fn": "avg"},
+        params={"device_id": str(device.id), "window": "1h", "fn": "avg", "start": iso(BASE), "end": iso(BASE + timedelta(hours=2))},
     )
     assert resp.status_code == 200
     assert resp.json() == []
@@ -395,7 +405,7 @@ async def test_aggregate_for_another_users_device_is_404(
 
     resp = await authed_client.get(
         "/readings/aggregate",
-        params={"device_id": str(their_device.id), "window": "1h", "fn": "avg"},
+        params={"device_id": str(their_device.id), "window": "1h", "fn": "avg", "start": iso(BASE), "end": iso(BASE + timedelta(hours=2))},
     )
     assert resp.status_code == 404
 

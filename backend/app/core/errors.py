@@ -67,6 +67,16 @@ def NotFoundErr(detail: str, code: str) -> APIError:
     )
 
 
+def DuplicateErr(detail: str, code: str, field: str) -> APIError:
+    """Build a 409 error."""
+    return APIError(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=detail,
+        code=code,
+        field=field,
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     """Install handlers so every error leaves the API in the documented shape."""
 

@@ -23,7 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
-from app.core.errors import APIError
+from app.core.errors import DuplicateErr
 from app.models import Device, Reading, User
 from app.schemas.reading import (
     AggregateBucket,
@@ -45,20 +45,6 @@ WINDOW_INTERVALS: dict[AggregateWindow, timedelta] = {
 }
 
 P95 = 0.95
-
-
-def _duplicate_reading_error(exc: IntegrityError) -> APIError:
-    """409 for a (time, device_id) that already exists.
-
-    The composite primary key makes a device's timeline unique per instant, so
-    re-posting the same timestamp is a conflict rather than an overwrite.
-    """
-    return APIError(
-        status_code=status.HTTP_409_CONFLICT,
-        detail="A reading already exists for that device at that time.",
-        code="duplicate_reading",
-        field="time",
-    )
 
 
 def _aggregate_expression(fn: AggregateFn) -> ColumnElement[Any]:
@@ -98,7 +84,11 @@ async def create_reading(
         await session.flush()
     except IntegrityError as exc:
         await session.rollback()
-        raise _duplicate_reading_error(exc) from exc
+        raise DuplicateErr(
+            detail="A reading already exists for that device at that time.",
+            code="duplicate_reading",
+            field="time",
+        ) from exc
 
     await session.commit()
     return reading
@@ -129,7 +119,12 @@ async def create_readings_bulk(
         await session.execute(insert(Reading), rows)
     except IntegrityError as exc:
         await session.rollback()
-        raise _duplicate_reading_error(exc) from exc
+        time_detail = exc.orig.diag.message_detail if exc.orig else "A reading already exists for that device at one of the provided times."
+        raise DuplicateErr(
+            detail=time_detail,
+            code="duplicate_reading",
+            field="time",
+        ) from exc
 
     await session.commit()
     return len(rows)

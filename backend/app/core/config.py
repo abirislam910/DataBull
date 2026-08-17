@@ -7,7 +7,9 @@ CI's testcontainer, and production without edits.
 """
 
 from functools import lru_cache
+from typing import Self
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -49,6 +51,25 @@ class Settings(BaseSettings):
     # length over forced symbol/case mixtures, which mostly push users toward
     # predictable substitutions ("Password1!").
     min_password_length: int = 8
+
+    # A bulk request is capped so one call cannot exhaust memory or hold a
+    # transaction open indefinitely. Clients paginate above this.
+
+    max_bulk_readings: int = 10000
+
+    # Default and ceiling for `limit` on read endpoints, so an unbounded query can
+    # never try to serialize an entire hypertable.
+    default_reading_limit: int = 1000
+    max_reading_limit: int = 10000
+
+    max_aggregate_buckets: int = 1000
+
+    @model_validator(mode="after")
+    def validate_limits(self) -> Self:
+        """Check that the default limit is not greater than the max limit."""
+        if self.default_reading_limit > self.max_reading_limit:
+            raise ValueError("default_reading_limit cannot exceed max_reading_limit")
+        return self
 
 
 @lru_cache

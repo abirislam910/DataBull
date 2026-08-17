@@ -13,6 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     String,
     UniqueConstraint,
+    CheckConstraint,
     func,
 )
 from sqlalchemy import (
@@ -47,6 +48,10 @@ class Device(Base):
         # "name unique per user" from the spec — a composite UNIQUE, not a plain
         # one. Two different users may both own a device called "Pump-3".
         UniqueConstraint("user_id", "name", name="uq_devices_user_id_name"),
+        CheckConstraint(
+        "min_threshold IS NULL OR max_threshold IS NULL OR min_threshold <= max_threshold",
+        name="ck_devices_min_threshold_max_threshold",
+    ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

@@ -4,20 +4,12 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-# A bulk request is capped so one call cannot exhaust memory or hold a
-# transaction open indefinitely. Clients paginate above this.
-MAX_BULK_READINGS = 10_000
-
-# Default and ceiling for `limit` on read endpoints, so an unbounded query can
-# never try to serialize an entire hypertable.
-DEFAULT_READING_LIMIT = 1_000
-MAX_READING_LIMIT = 10_000
-
+from app.core.config import get_settings
 
 def ensure_utc(value: datetime) -> datetime:
     """Normalize any datetime to UTC.
@@ -39,6 +31,13 @@ class AggregateWindow(str, enum.Enum):
     HOUR = "1h"
     DAY = "1d"
     WEEK = "1w"
+
+
+WINDOW_INTERVALS: dict[AggregateWindow, timedelta] = {
+    AggregateWindow.HOUR: timedelta(hours=1),
+    AggregateWindow.DAY: timedelta(days=1),
+    AggregateWindow.WEEK: timedelta(weeks=1),
+}
 
 
 class AggregateFn(str, enum.Enum):
@@ -140,6 +139,8 @@ class _TimeWindow(BaseModel):
     @field_validator("start", "end")
     @classmethod
     def normalize_bounds(cls, value: datetime | None) -> datetime | None:
+        if value > datetime.now(tz=UTC) + timedelta(minutes=5) or value < datetime(1970, 1, 1, tzinfo=UTC):
+            raise ValueError("timestamp out of range")
         return None if value is None else ensure_utc(value)
 
     @model_validator(mode="after")
@@ -150,7 +151,22 @@ class _TimeWindow(BaseModel):
         return self
 
 
-class ReadingFilters(_TimeWindow):
+class _Limit(BaseModel):
+    """Shared `start`/`end`/`limit` validation for the read endpoints."""
+
+    limit: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def apply_default_limit(self) -> Self:
+        settings = get_settings()
+        if self.limit is None:
+            object.__setattr__(self, "limit", settings.default_reading_limit)
+        elif self.limit > settings.max_reading_limit:
+            raise ValueError(f"limit cannot exceed {settings.max_reading_limit}")
+        return self
+
+
+class ReadingFilters(_TimeWindow, _Limit):
     """Query params for `GET /readings`.
 
     Modelled as a Pydantic query model rather than loose parameters so the
@@ -159,7 +175,6 @@ class ReadingFilters(_TimeWindow):
     """
 
     device_id: uuid.UUID
-    limit: int = Field(default=DEFAULT_READING_LIMIT, ge=1, le=MAX_READING_LIMIT)
 
 
 class AggregateFilters(_TimeWindow):
@@ -169,8 +184,31 @@ class AggregateFilters(_TimeWindow):
     window: AggregateWindow
     fn: AggregateFn
 
+    @model_validator(mode="after")
+    def bound_bucket_count(self) -> Self:
+        settings = get_settings()
+        MAX_BUCKETS = settings.max_aggregate_buckets
+        if self.start is None and self.end is None:
+            self.end = datetime.now(tz=UTC)
+            self.start = self.end - MAX_BUCKETS * WINDOW_INTERVALS[self.window]
+            return self
+        elif self.start is None:
+            self.start = self.end - MAX_BUCKETS * WINDOW_INTERVALS[self.window]
+            return self
+        elif self.end is None:
+            self.end = self.start + MAX_BUCKETS * WINDOW_INTERVALS[self.window]
+            return self
+        span = self.end - self.start
+        bucket_count = span / WINDOW_INTERVALS[self.window]
+        if bucket_count > MAX_BUCKETS:
+            raise ValueError(
+                f"Requested range produces too many buckets "
+                f"({int(bucket_count)} > {MAX_BUCKETS}); narrow the range or widen the window."
+            )
+        return self
 
-class AlertFilters(BaseModel):
+
+class AlertFilters(_Limit):
     """Query params for `GET /readings/alerts`.
 
     `device_id` is optional here (SPEC marks it `device_id?`): omitted means
@@ -179,7 +217,6 @@ class AlertFilters(BaseModel):
 
     since: datetime
     device_id: uuid.UUID | None = None
-    limit: int = Field(default=DEFAULT_READING_LIMIT, ge=1, le=MAX_READING_LIMIT)
 
     @field_validator("since")
     @classmethod

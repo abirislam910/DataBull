@@ -12,9 +12,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Query, status
 
+from app.core.config import get_settings
 from app.core.deps import CurrentUser, DbSession
 from app.schemas.reading import (
-    MAX_BULK_READINGS,
     AggregateBucket,
     AggregateFilters,
     AlertFilters,
@@ -34,6 +34,8 @@ from app.services.reading import (
 )
 
 router = APIRouter(tags=["readings"])
+
+settings = get_settings()
 
 
 @router.post(
@@ -61,7 +63,9 @@ async def create_bulk(
     device_id: uuid.UUID,
     # The batch is size-capped at the edge so an oversized upload is a 422
     # rather than a request that ties up a connection building a huge INSERT.
-    payload: Annotated[list[BulkReadingCreate], Body(max_length=MAX_BULK_READINGS)],
+    payload: Annotated[
+        list[BulkReadingCreate], Body(max_length=settings.max_bulk_readings)
+    ],
     session: DbSession,
     current_user: CurrentUser,
 ) -> BulkReadingsResponse:
