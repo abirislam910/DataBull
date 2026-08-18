@@ -62,7 +62,12 @@ class ReadingCreate(BaseModel):
     @field_validator("time")
     @classmethod
     def normalize_time(cls, value: datetime | None) -> datetime | None:
-        return None if value is None else ensure_utc(value)
+        if value is None:
+            return None
+        utc_value = ensure_utc(value)
+        if utc_value > datetime.now(tz=UTC) + timedelta(minutes=5) or utc_value < datetime(1970, 1, 1, tzinfo=UTC):
+            raise ValueError("timestamp out of range")
+        return utc_value
 
 
 class BulkReadingCreate(BaseModel):
@@ -81,7 +86,10 @@ class BulkReadingCreate(BaseModel):
     @field_validator("time")
     @classmethod
     def normalize_time(cls, value: datetime) -> datetime:
-        return ensure_utc(value)
+        utc_value = ensure_utc(value)
+        if utc_value > datetime.now(tz=UTC) + timedelta(minutes=5) or utc_value < datetime(1970, 1, 1, tzinfo=UTC):
+            raise ValueError("timestamp out of range")
+        return utc_value
 
 
 class ReadingResponse(BaseModel):

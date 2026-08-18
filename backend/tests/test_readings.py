@@ -6,6 +6,7 @@ silently-wrong rollup, not merely a crash.
 
 from __future__ import annotations
 
+import os
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
@@ -14,6 +15,7 @@ from httpx import AsyncClient
 
 from app.core.security import create_access_token
 from app.models import Device, User
+from app.core.config import get_settings
 
 BASE = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
 
@@ -87,13 +89,6 @@ async def test_duplicate_timestamp_conflicts(
     assert second.json()["code"] == "duplicate_reading"
 
 
-async def test_create_reading_requires_authentication(
-    client: AsyncClient, device: Device
-) -> None:
-    resp = await client.post(f"/devices/{device.id}/readings", json={"value": 1.0})
-    assert resp.status_code == 401
-
-
 async def test_cannot_post_readings_to_another_users_device(
     authed_client: AsyncClient,
     make_user: Callable[..., Awaitable[User]],
@@ -108,6 +103,28 @@ async def test_cannot_post_readings_to_another_users_device(
     )
     assert resp.status_code == 404
     assert resp.json()["code"] == "device_not_found"
+
+
+async def test_cannot_post_readings_outside_time_window(
+    authed_client: AsyncClient, device: Device
+) -> None:
+    """Timestamps must be within a reasonable range."""
+    past_timestamp = datetime(1969, 12, 31, 23, 59, 59, tzinfo=UTC).isoformat()
+
+    past = await authed_client.post(
+        f"/devices/{device.id}/readings",
+        json={"value": 1.0, "time": past_timestamp},
+    )
+
+    timestamp = (datetime.now(tz=UTC) + timedelta(minutes=30)).isoformat()
+
+    future = await authed_client.post(
+        f"/devices/{device.id}/readings",
+        json={"value": 1.0, "time": timestamp},
+    )
+    assert past.status_code == future.status_code == 422
+    assert past.json()["code"] == future.json()["code"] == "validation_error"
+    assert past.json()["field"] == future.json()["field"] == "time"
 
 
 # --- POST /devices/{id}/readings/bulk ---------------------------------------
@@ -162,6 +179,53 @@ async def test_bulk_rejects_oversized_batch(
     resp = await authed_client.post(f"/devices/{device.id}/readings/bulk", json=rows)
     assert resp.status_code == 422
 
+
+async def test_cannot_post_bulk_readings_to_another_users_device(
+    authed_client: AsyncClient,
+    make_user: Callable[..., Awaitable[User]],
+    make_device: Callable[..., Awaitable[Device]],
+) -> None:
+    """The device gate is what keeps telemetry isolated — readings have no owner."""
+    stranger = await make_user(email="stranger@example.com")
+    their_device = await make_device(stranger, name="Not-Yours")
+
+    rows = [{"value": 1.0, "time": iso(BASE + timedelta(seconds=i))} for i in range(5)]
+
+    resp = await authed_client.post(
+        f"/devices/{their_device.id}/readings/bulk", json=rows
+    )
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "device_not_found"
+
+
+async def test_cannot_post_bulk_readings_outside_time_window(
+    authed_client: AsyncClient, device: Device
+) -> None:
+    """Timestamps must be within a reasonable range."""
+    past_timestamp = datetime(1969, 12, 31, 23, 59, 59, tzinfo=UTC).isoformat()
+
+    past_rows = [
+        {"value": 1.0, "time": past_timestamp},
+        {"value": 2.0, "time": iso(BASE)},
+    ]
+
+    past = await authed_client.post(
+        f"/devices/{device.id}/readings/bulk", json=past_rows
+    )
+
+    timestamp = (datetime.now(tz=UTC) + timedelta(minutes=30)).isoformat()
+
+    future_rows = [
+        {"value": 1.0, "time": iso(BASE)},
+        {"value": 2.0, "time": timestamp},
+    ]
+
+    future = await authed_client.post(
+        f"/devices/{device.id}/readings/bulk", json=future_rows
+    )
+    assert past.status_code == future.status_code == 422
+    assert past.json()["code"] == future.json()["code"] == "validation_error"
+    assert past.json()["field"] == future.json()["field"] == "time"
 
 # --- GET /readings ----------------------------------------------------------
 
@@ -262,11 +326,25 @@ async def test_list_readings_for_another_users_device_is_404(
     assert resp.status_code == 404
 
 
-async def test_list_readings_requires_authentication(
-    client: AsyncClient, device: Device
+async def test_cannot_list_readings_outside_time_window(
+    authed_client: AsyncClient, device: Device
 ) -> None:
-    resp = await client.get("/readings", params={"device_id": str(device.id)})
-    assert resp.status_code == 401
+    """Timestamps must be within a reasonable range."""
+    past_timestamp = datetime(1969, 12, 31, 23, 59, 59, tzinfo=UTC).isoformat()
+
+    past = await authed_client.get(
+        "/readings",
+        params={"device_id": str(device.id), "start": past_timestamp},
+    )
+
+    timestamp = (datetime.now(tz=UTC) + timedelta(minutes=30)).isoformat()
+
+    future = await authed_client.get(
+        "/readings",
+        params={"device_id": str(device.id), "end": timestamp},
+    )
+    assert past.status_code == future.status_code == 422
+    assert past.json()["code"] == future.json()["code"] == "validation_error"
 
 
 # --- GET /readings/aggregate ------------------------------------------------
@@ -349,7 +427,7 @@ async def test_aggregate_daily_window(
     assert [b["value"] for b in resp.json()] == [2.0, 10.0]
 
 
-async def test_aggregate_honours_the_time_window(
+async def test_aggregate_honors_the_time_window(
     authed_client: AsyncClient, device: Device
 ) -> None:
     rows = [
@@ -410,6 +488,42 @@ async def test_aggregate_for_another_users_device_is_404(
     assert resp.status_code == 404
 
 
+async def test_aggregate_rejects_excessive_buckets(
+    authed_client: AsyncClient, device: Device
+) -> None:
+    resp = await authed_client.get(
+        "/readings/aggregate",
+        params={
+            "device_id": str(device.id),
+            "window": "1h",
+            "fn": "avg",
+            "start": iso(BASE),
+            "end": iso(BASE + timedelta(days=100)),
+        },
+    )
+    assert resp.status_code == 422
+
+
+async def test_aggregate_interpolates_start_and_end(
+    authed_client: AsyncClient, device: Device
+) -> None:
+    rows = [
+        {"value": float(i), "time": iso(BASE + timedelta(days=i))} for i in range(1000),
+    ]
+    await authed_client.post(f"/devices/{device.id}/readings/bulk", json=rows)
+
+    resp = await authed_client.get(
+        "/readings/aggregate",
+        params={
+            "device_id": str(device.id),
+            "window": "1h",
+            "fn": "avg",
+            "start": iso(BASE + timedelta(minutes=15)),
+            "end": iso(BASE + timedelta(minutes=75)),
+        },
+    )
+    assert [b["value"] for b in resp.json()] == [2.0, 3.0]
+
 # --- GET /readings/alerts ---------------------------------------------------
 
 
@@ -443,8 +557,8 @@ async def test_alerts_reports_threshold_breaches(
     assert alerts[1]["bound"] == "min"
     assert alerts[1]["threshold"] == 10.0
     # Self-describing, so the agent can cite the device by name.
-    assert alerts[0]["device_name"] == "Bounded"
-    assert alerts[0]["unit"] == "L/min"
+    assert alerts[0]["device_name"] == alerts[1]["device_name"] == "Bounded"
+    assert alerts[0]["unit"] == alerts[1]["unit"] == "L/min"
 
 
 async def test_devices_without_thresholds_never_alert(
@@ -535,11 +649,6 @@ async def test_alerts_for_another_users_device_is_404(
     assert resp.status_code == 404
 
 
-async def test_alerts_requires_authentication(client: AsyncClient) -> None:
-    resp = await client.get("/readings/alerts", params={"since": iso(BASE)})
-    assert resp.status_code == 401
-
-
 async def test_alerts_requires_since(authed_client: AsyncClient) -> None:
     resp = await authed_client.get("/readings/alerts")
     assert resp.status_code == 422
@@ -558,3 +667,16 @@ async def test_unknown_device_id_is_404_everywhere(authed_client: AsyncClient) -
         params={"device_id": str(ghost), "window": "1h", "fn": "avg"},
     )
     assert post.status_code == listed.status_code == agg.status_code == 404
+
+async def test_routes_require_authentication(client: AsyncClient, device: Device) -> None:
+    """All reading routes are protected."""
+    endpoints = [
+        ("POST", f"/devices/{device.id}/readings"),
+        ("POST", f"/devices/{device.id}/readings/bulk"),
+        ("GET", "/readings"),
+        ("GET", "/readings/aggregate"),
+        ("GET", "/readings/alerts"),
+    ]
+    for method, url in endpoints:
+        resp = await client.request(method, url)
+        assert resp.status_code == 401
