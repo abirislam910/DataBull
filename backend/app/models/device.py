@@ -8,12 +8,12 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
     String,
     UniqueConstraint,
-    CheckConstraint,
     func,
 )
 from sqlalchemy import (
@@ -49,9 +49,9 @@ class Device(Base):
         # one. Two different users may both own a device called "Pump-3".
         UniqueConstraint("user_id", "name", name="uq_devices_user_id_name"),
         CheckConstraint(
-        "min_threshold IS NULL OR max_threshold IS NULL OR min_threshold <= max_threshold",
-        name="ck_devices_min_threshold_max_threshold",
-    ),
+            "min_threshold IS NULL OR max_threshold IS NULL OR min_threshold <= max_threshold",
+            name="ck_devices_min_threshold_max_threshold",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

@@ -12,12 +12,11 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 
-from fastapi import status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import APIError, NotFoundErr, DuplicateErr
+from app.core.errors import DuplicateErr, NotFoundErr
 from app.models import Device, User
 from app.schemas.device import DeviceCreate, DeviceUpdate
 

@@ -21,19 +21,19 @@ from app.schemas.reading import (
     AlertResponse,
     BulkReadingCreate,
     BulkReadingsResponse,
+    DeleteReadingsFilters,
+    DeleteReadingsResponse,
     ReadingCreate,
     ReadingFilters,
     ReadingResponse,
-    DeleteReadingsFilters,
-    DeleteReadingsResponse,
 )
 from app.services.reading import (
     aggregate_readings,
     create_reading,
     create_readings_bulk,
+    delete_readings,
     list_alerts,
     list_readings,
-    delete_readings,
 )
 
 router = APIRouter(tags=["readings"])

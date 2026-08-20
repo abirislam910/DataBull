@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.core.config import get_settings
 
+
 def ensure_utc(value: datetime) -> datetime:
     """Normalize any datetime to UTC.
 
@@ -65,7 +66,9 @@ class ReadingCreate(BaseModel):
         if value is None:
             return None
         utc_value = ensure_utc(value)
-        if utc_value > datetime.now(tz=UTC) + timedelta(minutes=5) or utc_value < datetime(1970, 1, 1, tzinfo=UTC):
+        if utc_value > datetime.now(tz=UTC) + timedelta(
+            minutes=5
+        ) or utc_value < datetime(1970, 1, 1, tzinfo=UTC):
             raise ValueError("timestamp out of range")
         return utc_value
 
@@ -87,7 +90,9 @@ class BulkReadingCreate(BaseModel):
     @classmethod
     def normalize_time(cls, value: datetime) -> datetime:
         utc_value = ensure_utc(value)
-        if utc_value > datetime.now(tz=UTC) + timedelta(minutes=5) or utc_value < datetime(1970, 1, 1, tzinfo=UTC):
+        if utc_value > datetime.now(tz=UTC) + timedelta(
+            minutes=5
+        ) or utc_value < datetime(1970, 1, 1, tzinfo=UTC):
             raise ValueError("timestamp out of range")
         return utc_value
 
@@ -147,7 +152,10 @@ class _TimeWindow(BaseModel):
     @field_validator("start", "end")
     @classmethod
     def normalize_bounds(cls, value: datetime | None) -> datetime | None:
-        if value > datetime.now(tz=UTC) + timedelta(minutes=5) or value < datetime(1970, 1, 1, tzinfo=UTC):
+        if value is not None and (
+            value > datetime.now(tz=UTC) + timedelta(minutes=5)
+            or value < datetime(1970, 1, 1, tzinfo=UTC)
+        ):
             raise ValueError("timestamp out of range")
         return None if value is None else ensure_utc(value)
 
@@ -160,16 +168,25 @@ class _TimeWindow(BaseModel):
 
 
 class _Limit(BaseModel):
-    """Shared `start`/`end`/`limit` validation for the read endpoints."""
+    """Shared `limit` validation for the read endpoints.
 
-    limit: int | None = Field(default=None, ge=1)
+    `limit` is typed `int`, not `int | None`, with the default supplied by a
+    factory. Declaring it optional and filling it in a validator left every
+    caller holding an `int | None` that the type checker could not see was
+    always populated — the ceiling check below still runs either way.
+    """
+
+    limit: int = Field(
+        # default_factory so the value is read from settings when the request is
+        # parsed, not frozen at import time.
+        default_factory=lambda: get_settings().default_reading_limit,
+        ge=1,
+    )
 
     @model_validator(mode="after")
-    def apply_default_limit(self) -> Self:
+    def limit_within_ceiling(self) -> Self:
         settings = get_settings()
-        if self.limit is None:
-            object.__setattr__(self, "limit", settings.default_reading_limit)
-        elif self.limit > settings.max_reading_limit:
+        if self.limit > settings.max_reading_limit:
             raise ValueError(f"limit cannot exceed {settings.max_reading_limit}")
         return self
 
@@ -196,23 +213,28 @@ class AggregateFilters(_TimeWindow):
     def bound_bucket_count(self) -> Self:
         settings = get_settings()
         MAX_BUCKETS = settings.max_aggregate_buckets
-        if self.start is None and self.end is None:
-            self.end = datetime.now(tz=UTC)
-            self.start = self.end - MAX_BUCKETS * WINDOW_INTERVALS[self.window]
-            return self
-        elif self.start is None:
-            self.start = self.end - MAX_BUCKETS * WINDOW_INTERVALS[self.window]
-            return self
-        elif self.end is None:
-            self.end = self.start + MAX_BUCKETS * WINDOW_INTERVALS[self.window]
-            return self
-        span = self.end - self.start
-        bucket_count = span / WINDOW_INTERVALS[self.window]
+        widest_span = MAX_BUCKETS * WINDOW_INTERVALS[self.window]
+
+        # Filled through locals rather than by assigning to `self` directly:
+        # writing `self.end = ...` does not tell the type checker that a later
+        # read of `self.end` is no longer None, so the arithmetic below would
+        # not check. Narrowing locals costs nothing and keeps the branches flat.
+        start, end = self.start, self.end
+        if end is None:
+            # An open-ended request is anchored to the newest edge it can have:
+            # `start + widest_span` when a start was given, otherwise now.
+            end = start + widest_span if start is not None else datetime.now(tz=UTC)
+        if start is None:
+            start = end - widest_span
+
+        bucket_count = (end - start) / WINDOW_INTERVALS[self.window]
         if bucket_count > MAX_BUCKETS:
             raise ValueError(
                 f"Requested range produces too many buckets "
                 f"({int(bucket_count)} > {MAX_BUCKETS}); narrow the range or widen the window."
             )
+
+        self.start, self.end = start, end
         return self
 
 
@@ -240,13 +262,18 @@ class DeleteReadingsFilters(_TimeWindow):
     """
 
     device_id: uuid.UUID
-    dry_run: bool = Field(default=False, description="If true, return how many rows would be deleted without actually deleting them.")
+    dry_run: bool = Field(
+        default=False,
+        description="If true, return how many rows would be deleted without actually deleting them.",
+    )
 
     @model_validator(mode="after")
     def request_body_must_include_bounds(self) -> Self:
         """A request must include either a start or and end timestamp"""
         if self.start is None and self.end is None:
-            raise ValueError("A request must include either a start or and end timestamp.")
+            raise ValueError(
+                "A request must include either a start or and end timestamp."
+            )
         return self
 
 

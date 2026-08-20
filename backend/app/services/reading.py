@@ -15,10 +15,15 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
-from fastapi import status
-from sqlalchemy import Interval, and_, cast, func, insert, literal, or_, select, delete
+from psycopg import Error as PsycopgError
+
+# `sql_cast` is SQLAlchemy's CAST(... AS ...) SQL construct; the bare `cast`
+# imported above is the type checker's. Aliasing keeps the two unmistakable.
+from sqlalchemy import Interval, and_, delete, func, insert, literal, or_, select
+from sqlalchemy import cast as sql_cast
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
@@ -31,8 +36,8 @@ from app.schemas.reading import (
     AggregateWindow,
     AlertResponse,
     BulkReadingCreate,
-    ReadingCreate,
     DeleteReadingsFilters,
+    ReadingCreate,
     ensure_utc,
 )
 from app.services.device import get_owned_device
@@ -120,7 +125,15 @@ async def create_readings_bulk(
         await session.execute(insert(Reading), rows)
     except IntegrityError as exc:
         await session.rollback()
-        time_detail = exc.orig.diag.message_detail if exc.orig else "A reading already exists for that device at one of the provided times."
+        # `.diag` is psycopg's structured error detail, so it only exists when
+        # the wrapped cause really is a psycopg error — `exc.orig` is typed as a
+        # plain BaseException. The isinstance check both satisfies the type
+        # checker and guards against a different driver's exception.
+        time_detail = (
+            "A reading already exists for that device at one of the provided times."
+        )
+        if isinstance(exc.orig, PsycopgError) and exc.orig.diag.message_detail:
+            time_detail = exc.orig.diag.message_detail
         raise DuplicateErr(
             detail=time_detail,
             code="duplicate_reading",
@@ -183,7 +196,7 @@ async def aggregate_readings(
     device = await get_owned_device(session, owner, device_id)
 
     bucket = func.time_bucket(
-        cast(literal(WINDOW_INTERVALS[window]), Interval), Reading.time
+        sql_cast(literal(WINDOW_INTERVALS[window]), Interval), Reading.time
     ).label("bucket")
 
     stmt = select(bucket, _aggregate_expression(fn).label("value")).where(
@@ -281,22 +294,30 @@ async def delete_readings(
     """
     device = await get_owned_device(session, owner, data.device_id)
 
-    if data.dry_run:
-        stmt = (
-            select(Reading).where(Reading.device_id == device.id)
-        )
-    else:
-        stmt = (
-            delete(Reading).where(Reading.device_id == device.id)
-        )
-
+    # Built once and applied to whichever statement runs. A single `stmt`
+    # variable cannot hold both a SELECT and a DELETE — they are different
+    # types with different result objects, which is what the type checker was
+    # objecting to.
+    conditions: list[ColumnElement[bool]] = [Reading.device_id == device.id]
     if data.start is not None:
-        stmt = stmt.where(Reading.time >= ensure_utc(data.start))
+        conditions.append(Reading.time >= ensure_utc(data.start))
     if data.end is not None:
-        stmt = stmt.where(Reading.time < ensure_utc(data.end))
+        conditions.append(Reading.time < ensure_utc(data.end))
 
-    result = await session.execute(stmt)
-    await session.commit()
     if data.dry_run:
-        return len(result.scalars().all())
+        # COUNT(*) rather than fetching the rows and calling len() on them: a
+        # dry run over a hypertable could otherwise pull millions of rows into
+        # memory just to discard them. Nothing is written, so nothing to commit.
+        matching = await session.scalar(
+            select(func.count()).select_from(Reading).where(*conditions)
+        )
+        return int(matching or 0)
+
+    # `execute()` is declared as returning the generic `Result`, but a DML
+    # statement always yields a `CursorResult` — which is the only kind that
+    # carries `rowcount`, the exact number of rows the DELETE removed.
+    result = cast(
+        "CursorResult[Any]", await session.execute(delete(Reading).where(*conditions))
+    )
+    await session.commit()
     return result.rowcount

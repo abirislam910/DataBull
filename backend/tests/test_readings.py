@@ -13,9 +13,9 @@ from datetime import UTC, datetime, timedelta
 
 from httpx import AsyncClient
 
+from app.core.config import get_settings
 from app.core.security import create_access_token
 from app.models import Device, User
-from app.core.config import get_settings
 
 BASE = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
 
@@ -227,6 +227,7 @@ async def test_cannot_post_bulk_readings_outside_time_window(
     assert past.json()["code"] == future.json()["code"] == "validation_error"
     assert past.json()["field"] == future.json()["field"] == "time"
 
+
 # --- GET /readings ----------------------------------------------------------
 
 
@@ -283,7 +284,7 @@ async def test_list_readings_window_is_half_open(
             "device_id": str(device.id),
             "start": iso(BASE + timedelta(hours=3)),
             "end": iso(BASE + timedelta(hours=4)),
-        }
+        },
     )
     assert sorted(r["value"] for r in left.json()) == [1.0, 2.0]
     assert sorted(r["value"] for r in right.json()) == [3.0]
@@ -367,7 +368,13 @@ async def test_aggregate_avg_buckets_by_hour(
 
     resp = await authed_client.get(
         "/readings/aggregate",
-        params={"device_id": str(device.id), "window": "1h", "fn": "avg", "start": iso(BASE), "end": iso(BASE + timedelta(hours=2))},
+        params={
+            "device_id": str(device.id),
+            "window": "1h",
+            "fn": "avg",
+            "start": iso(BASE),
+            "end": iso(BASE + timedelta(hours=2)),
+        },
     )
     assert resp.status_code == 200, resp.text
     buckets = resp.json()
@@ -386,9 +393,23 @@ async def test_aggregate_min_max(authed_client: AsyncClient, device: Device) -> 
     await authed_client.post(f"/devices/{device.id}/readings/bulk", json=rows)
 
     params = {"device_id": str(device.id), "window": "1h"}
-    low = await authed_client.get("/readings/aggregate", params={**params, "fn": "min", "start": iso(BASE), "end": iso(BASE + timedelta(hours=1))})
+    low = await authed_client.get(
+        "/readings/aggregate",
+        params={
+            **params,
+            "fn": "min",
+            "start": iso(BASE),
+            "end": iso(BASE + timedelta(hours=1)),
+        },
+    )
     high = await authed_client.get(
-        "/readings/aggregate", params={**params, "fn": "max", "start": iso(BASE), "end": iso(BASE + timedelta(hours=1))}
+        "/readings/aggregate",
+        params={
+            **params,
+            "fn": "max",
+            "start": iso(BASE),
+            "end": iso(BASE + timedelta(hours=1)),
+        },
     )
     assert [b["value"] for b in low.json()] == [-3.0]
     assert [b["value"] for b in high.json()] == [15.0]
@@ -404,7 +425,13 @@ async def test_aggregate_p95(authed_client: AsyncClient, device: Device) -> None
 
     resp = await authed_client.get(
         "/readings/aggregate",
-        params={"device_id": str(device.id), "window": "1h", "fn": "p95", "start": iso(BASE), "end": iso(BASE + timedelta(hours=1))},
+        params={
+            "device_id": str(device.id),
+            "window": "1h",
+            "fn": "p95",
+            "start": iso(BASE),
+            "end": iso(BASE + timedelta(hours=1)),
+        },
     )
     assert resp.status_code == 200, resp.text
     assert resp.json()[0]["value"] == 95.05
@@ -422,7 +449,13 @@ async def test_aggregate_daily_window(
 
     resp = await authed_client.get(
         "/readings/aggregate",
-        params={"device_id": str(device.id), "window": "1d", "fn": "avg", "start": iso(BASE), "end": iso(BASE + timedelta(days=2))},
+        params={
+            "device_id": str(device.id),
+            "window": "1d",
+            "fn": "avg",
+            "start": iso(BASE),
+            "end": iso(BASE + timedelta(days=2)),
+        },
     )
     assert [b["value"] for b in resp.json()] == [2.0, 10.0]
 
@@ -467,7 +500,13 @@ async def test_aggregate_empty_range_returns_empty_list(
 ) -> None:
     resp = await authed_client.get(
         "/readings/aggregate",
-        params={"device_id": str(device.id), "window": "1h", "fn": "avg", "start": iso(BASE), "end": iso(BASE + timedelta(hours=2))},
+        params={
+            "device_id": str(device.id),
+            "window": "1h",
+            "fn": "avg",
+            "start": iso(BASE),
+            "end": iso(BASE + timedelta(hours=2)),
+        },
     )
     assert resp.status_code == 200
     assert resp.json() == []
@@ -483,7 +522,13 @@ async def test_aggregate_for_another_users_device_is_404(
 
     resp = await authed_client.get(
         "/readings/aggregate",
-        params={"device_id": str(their_device.id), "window": "1h", "fn": "avg", "start": iso(BASE), "end": iso(BASE + timedelta(hours=2))},
+        params={
+            "device_id": str(their_device.id),
+            "window": "1h",
+            "fn": "avg",
+            "start": iso(BASE),
+            "end": iso(BASE + timedelta(hours=2)),
+        },
     )
     assert resp.status_code == 404
 
@@ -531,6 +576,7 @@ async def test_aggregate_interpolates_start_and_end(
     get_settings.cache_clear()
     settings = get_settings()
     assert settings.default_reading_limit == 1000
+
 
 # --- GET /readings/alerts ---------------------------------------------------
 
@@ -665,6 +711,7 @@ async def test_alerts_requires_since(authed_client: AsyncClient) -> None:
 
 # -- - DELETE /readings ---------------------------------------------------------
 
+
 async def test_delete_readings(authed_client: AsyncClient, device: Device) -> None:
     """DELETE /readings removes rows in the given time window."""
     rows = [
@@ -694,7 +741,7 @@ async def test_delete_readings_for_another_users_device_is_404(
 ) -> None:
     stranger = await make_user(email="stranger@example.com")
     their_device = await make_device(stranger, name="Not-Yours")
-        
+
     resp = await authed_client.delete(
         "/readings",
         params={
@@ -709,41 +756,37 @@ async def test_delete_readings_for_another_users_device_is_404(
 
 
 async def test_delete_readings_must_include_start_or_end_time(
-    authed_client: AsyncClient, 
-    device: Device
+    authed_client: AsyncClient, device: Device
 ) -> None:
 
     resp = await authed_client.delete(
         "/readings",
-        params={
-            "device_id": str(device.id)
-        },
+        params={"device_id": str(device.id)},
     )
 
     assert resp.status_code == 422
 
 
 async def test_delete_readings_dry_run_is_passive(
-    authed_client: AsyncClient, 
-    device: Device
+    authed_client: AsyncClient, device: Device
 ) -> None:
     rows = [
         {"value": float(i), "time": iso(BASE + timedelta(hours=i))} for i in range(5)
     ]
     await authed_client.post(f"/devices/{device.id}/readings/bulk", json=rows)
-    
+
     resp = await authed_client.delete(
         "/readings",
         params={
             "device_id": str(device.id),
             "start": iso(BASE + timedelta(hours=1)),
             "end": iso(BASE + timedelta(hours=4)),
-            "dry_run": True
+            "dry_run": True,
         },
     )
     assert resp.status_code == 200
     assert resp.json()["count"] == 3
-    
+
     listed = await authed_client.get("/readings", params={"device_id": str(device.id)})
     assert [r["value"] for r in listed.json()] == [4.0, 3.0, 2.0, 1.0, 0.0]
 
@@ -787,10 +830,23 @@ async def test_cannot_delete_readings_outside_time_window(
             "end": future_timestamp,
         },
     )
-    assert past_start.status_code == past_end.status_code == future_start.status_code == future_end.status_code == 422
-    assert past_start.json()["code"] == past_end.json()["code"] == future_start.json()["code"] == future_end.json()["code"] == "validation_error"
+    assert (
+        past_start.status_code
+        == past_end.status_code
+        == future_start.status_code
+        == future_end.status_code
+        == 422
+    )
+    assert (
+        past_start.json()["code"]
+        == past_end.json()["code"]
+        == future_start.json()["code"]
+        == future_end.json()["code"]
+        == "validation_error"
+    )
     assert past_start.json()["field"] == future_start.json()["field"] == "start"
     assert past_end.json()["field"] == future_end.json()["field"] == "end"
+
 
 # --- Cross-cutting ----------------------------------------------------------
 
@@ -805,7 +861,10 @@ async def test_unknown_device_id_is_404_everywhere(authed_client: AsyncClient) -
     )
     assert post.status_code == listed.status_code == agg.status_code == 404
 
-async def test_routes_require_authentication(client: AsyncClient, device: Device) -> None:
+
+async def test_routes_require_authentication(
+    client: AsyncClient, device: Device
+) -> None:
     """All reading routes are protected."""
     endpoints = [
         ("POST", f"/devices/{device.id}/readings"),
