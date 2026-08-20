@@ -83,7 +83,10 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id", name="pk_devices"),
         sa.UniqueConstraint("user_id", "name", name="uq_devices_user_id_name"),
-        sa.CheckConstraint('min_threshold IS NULL OR max_threshold IS NULL OR min_threshold <= max_threshold', name='ck_devices_min_threshold_max_threshold'),
+        sa.CheckConstraint(
+            "min_threshold IS NULL OR max_threshold IS NULL OR min_threshold <= max_threshold",
+            name="ck_devices_min_threshold_max_threshold",
+        ),
     )
     op.create_index("ix_devices_user_id", "devices", ["user_id"])
 
