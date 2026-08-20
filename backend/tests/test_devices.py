@@ -50,12 +50,6 @@ async def test_create_device_with_thresholds(authed_client: AsyncClient) -> None
     assert resp.json()["max_threshold"] == 90.0
 
 
-async def test_create_requires_authentication(client: AsyncClient) -> None:
-    resp = await client.post("/devices", json=VALID_DEVICE)
-    assert resp.status_code == 401
-    assert resp.json()["code"] == "not_authenticated"
-
-
 async def test_create_rejects_unknown_device_type(authed_client: AsyncClient) -> None:
     """`vibration` was removed from the enum, so it must not be accepted."""
     resp = await authed_client.post(
@@ -134,11 +128,6 @@ async def test_list_returns_only_the_callers_devices(
 
     resp = await authed_client.get("/devices")
     assert [d["name"] for d in resp.json()] == ["Mine"]
-
-
-async def test_list_requires_authentication(client: AsyncClient) -> None:
-    resp = await client.get("/devices")
-    assert resp.status_code == 401
 
 
 # --- GET /devices/{device_id} ---------------------------------------------------------------
@@ -228,13 +217,6 @@ async def test_update_another_users_device_is_refused(
         f"/devices/{their_device.id}", json={"name": "New Name"}
     )
     assert resp.status_code == 404
-
-
-async def test_update_requires_authentication(
-    client: AsyncClient, device: Device
-) -> None:
-    resp = await client.patch(f"/devices/{device.id}", json={"name": "New Name"})
-    assert resp.status_code == 401
 
 
 async def test_update_rejects_inverted_thresholds(authed_client: AsyncClient) -> None:
@@ -368,16 +350,24 @@ async def test_delete_cascades_to_readings(
     assert remaining == 0
 
 
-async def test_delete_requires_authentication(
-    client: AsyncClient, device: Device
-) -> None:
-    resp = await client.delete(f"/devices/{device.id}")
-    assert resp.status_code == 401
-
-
 # --- Response shape ---------------------------------------------------------
 
 
 async def test_response_does_not_leak_owner_id(authed_client: AsyncClient) -> None:
     resp = await authed_client.post("/devices", json=VALID_DEVICE)
     assert "user_id" not in resp.json()
+
+async def test_routes_require_authentication(
+    client: AsyncClient, device: Device
+) -> None:
+    """All device routes must require auth."""
+    endpoints = [
+            ("POST", "/devices"),
+            ("GET", "/devices"),
+            ("GET", f"/devices/{device.id}"),
+            ("PATCH", f"/devices/{device.id}"),
+            ("DELETE", f"/devices/{device.id}"),
+        ]
+    for method, url in endpoints:
+        resp = await client.request(method, url)
+        assert resp.status_code == 401

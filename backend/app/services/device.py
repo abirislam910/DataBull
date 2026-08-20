@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import APIError, NotFoundErr
+from app.core.errors import APIError, NotFoundErr, DuplicateErr
 from app.models import Device, User
 from app.schemas.device import DeviceCreate, DeviceUpdate
 
@@ -44,8 +44,7 @@ async def create_device(
         await session.flush()
     except IntegrityError as exc:
         await session.rollback()
-        raise APIError(
-            status_code=status.HTTP_409_CONFLICT,
+        raise DuplicateErr(
             detail="You already have a device with that name.",
             code="device_name_taken",
             field="name",
@@ -100,8 +99,7 @@ async def update_device(
         await session.flush()
     except IntegrityError as exc:
         await session.rollback()
-        raise APIError(
-            status_code=status.HTTP_409_CONFLICT,
+        raise DuplicateErr(
             detail="You already have a device with that name.",
             code="device_name_taken",
             field="name",
