@@ -357,17 +357,18 @@ async def test_response_does_not_leak_owner_id(authed_client: AsyncClient) -> No
     resp = await authed_client.post("/devices", json=VALID_DEVICE)
     assert "user_id" not in resp.json()
 
+
 async def test_routes_require_authentication(
     client: AsyncClient, device: Device
 ) -> None:
     """All device routes must require auth."""
     endpoints = [
-            ("POST", "/devices"),
-            ("GET", "/devices"),
-            ("GET", f"/devices/{device.id}"),
-            ("PATCH", f"/devices/{device.id}"),
-            ("DELETE", f"/devices/{device.id}"),
-        ]
+        ("POST", "/devices"),
+        ("GET", "/devices"),
+        ("GET", f"/devices/{device.id}"),
+        ("PATCH", f"/devices/{device.id}"),
+        ("DELETE", f"/devices/{device.id}"),
+    ]
     for method, url in endpoints:
         resp = await client.request(method, url)
         assert resp.status_code == 401
