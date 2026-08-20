@@ -18,7 +18,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 from fastapi import status
-from sqlalchemy import Interval, and_, cast, func, insert, literal, or_, select
+from sqlalchemy import Interval, and_, cast, func, insert, literal, or_, select, delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
@@ -32,6 +32,7 @@ from app.schemas.reading import (
     AlertResponse,
     BulkReadingCreate,
     ReadingCreate,
+    DeleteReadingsFilters,
     ensure_utc,
 )
 from app.services.device import get_owned_device
@@ -269,3 +270,33 @@ async def list_alerts(
             )
         )
     return alerts
+
+
+async def delete_readings(
+    session: AsyncSession, owner: User, data: DeleteReadingsFilters
+) -> int:
+    """Delete all readings for one device before a given time.
+
+    Returns how many rows were deleted. The caller must own the device.
+    """
+    device = await get_owned_device(session, owner, data.device_id)
+
+    if data.dry_run:
+        stmt = (
+            select(Reading).where(Reading.device_id == device.id)
+        )
+    else:
+        stmt = (
+            delete(Reading).where(Reading.device_id == device.id)
+        )
+
+    if data.start is not None:
+        stmt = stmt.where(Reading.time >= ensure_utc(data.start))
+    if data.end is not None:
+        stmt = stmt.where(Reading.time < ensure_utc(data.end))
+
+    result = await session.execute(stmt)
+    await session.commit()
+    if data.dry_run:
+        return len(result.scalars().all())
+    return result.rowcount

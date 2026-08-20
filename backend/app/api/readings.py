@@ -24,6 +24,8 @@ from app.schemas.reading import (
     ReadingCreate,
     ReadingFilters,
     ReadingResponse,
+    DeleteReadingsFilters,
+    DeleteReadingsResponse,
 )
 from app.services.reading import (
     aggregate_readings,
@@ -31,6 +33,7 @@ from app.services.reading import (
     create_readings_bulk,
     list_alerts,
     list_readings,
+    delete_readings,
 )
 
 router = APIRouter(tags=["readings"])
@@ -124,3 +127,17 @@ async def alerts(
         filters.device_id,
         filters.limit,
     )
+
+
+@router.delete("/readings", response_model=DeleteReadingsResponse)
+async def delete(
+    filters: Annotated[DeleteReadingsFilters, Query()],
+    session: DbSession,
+    current_user: CurrentUser,
+) -> DeleteReadingsResponse:
+    """Delete readings for one device, optionally within a time window.
+
+    Returns how many rows were deleted. The caller must own the device.
+    """
+    count = await delete_readings(session, current_user, filters)
+    return DeleteReadingsResponse(count=count)

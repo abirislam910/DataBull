@@ -337,11 +337,11 @@ async def test_cannot_list_readings_outside_time_window(
         params={"device_id": str(device.id), "start": past_timestamp},
     )
 
-    timestamp = (datetime.now(tz=UTC) + timedelta(minutes=30)).isoformat()
+    future_timestamp = (datetime.now(tz=UTC) + timedelta(minutes=30)).isoformat()
 
     future = await authed_client.get(
         "/readings",
-        params={"device_id": str(device.id), "end": timestamp},
+        params={"device_id": str(device.id), "end": future_timestamp},
     )
     assert past.status_code == future.status_code == 422
     assert past.json()["code"] == future.json()["code"] == "validation_error"
@@ -507,8 +507,12 @@ async def test_aggregate_rejects_excessive_buckets(
 async def test_aggregate_interpolates_start_and_end(
     authed_client: AsyncClient, device: Device
 ) -> None:
+    os.environ["MAX_AGGREGATE_BUCKETS"] = "100"
+    get_settings.cache_clear()
+    settings = get_settings()
+    assert settings.max_aggregate_buckets == 100
     rows = [
-        {"value": float(i), "time": iso(BASE + timedelta(days=i))} for i in range(1000),
+        {"value": float(i), "time": iso(BASE + timedelta(hours=i))} for i in range(200)
     ]
     await authed_client.post(f"/devices/{device.id}/readings/bulk", json=rows)
 
@@ -518,11 +522,15 @@ async def test_aggregate_interpolates_start_and_end(
             "device_id": str(device.id),
             "window": "1h",
             "fn": "avg",
-            "start": iso(BASE + timedelta(minutes=15)),
-            "end": iso(BASE + timedelta(minutes=75)),
+            "start": iso(BASE),
         },
     )
-    assert [b["value"] for b in resp.json()] == [2.0, 3.0]
+    assert [b["value"] for b in resp.json()] == [float(i) for i in range(100)]
+
+    os.environ["DEFAULT_READING_LIMIT"] = "1000"
+    get_settings.cache_clear()
+    settings = get_settings()
+    assert settings.default_reading_limit == 1000
 
 # --- GET /readings/alerts ---------------------------------------------------
 
@@ -655,6 +663,135 @@ async def test_alerts_requires_since(authed_client: AsyncClient) -> None:
     assert resp.json()["field"] == "since"
 
 
+# -- - DELETE /readings ---------------------------------------------------------
+
+async def test_delete_readings(authed_client: AsyncClient, device: Device) -> None:
+    """DELETE /readings removes rows in the given time window."""
+    rows = [
+        {"value": float(i), "time": iso(BASE + timedelta(hours=i))} for i in range(5)
+    ]
+    await authed_client.post(f"/devices/{device.id}/readings/bulk", json=rows)
+
+    resp = await authed_client.delete(
+        "/readings",
+        params={
+            "device_id": str(device.id),
+            "start": iso(BASE + timedelta(hours=1)),
+            "end": iso(BASE + timedelta(hours=4)),
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json()["count"] == 3
+
+    listed = await authed_client.get("/readings", params={"device_id": str(device.id)})
+    assert [r["value"] for r in listed.json()] == [4.0, 0.0]
+
+
+async def test_delete_readings_for_another_users_device_is_404(
+    authed_client: AsyncClient,
+    make_user: Callable[..., Awaitable[User]],
+    make_device: Callable[..., Awaitable[Device]],
+) -> None:
+    stranger = await make_user(email="stranger@example.com")
+    their_device = await make_device(stranger, name="Not-Yours")
+        
+    resp = await authed_client.delete(
+        "/readings",
+        params={
+            "device_id": str(their_device.id),
+            "start": iso(BASE),
+            "end": iso(BASE + timedelta(hours=1)),
+        },
+    )
+
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "device_not_found"
+
+
+async def test_delete_readings_must_include_start_or_end_time(
+    authed_client: AsyncClient, 
+    device: Device
+) -> None:
+
+    resp = await authed_client.delete(
+        "/readings",
+        params={
+            "device_id": str(device.id)
+        },
+    )
+
+    assert resp.status_code == 422
+
+
+async def test_delete_readings_dry_run_is_passive(
+    authed_client: AsyncClient, 
+    device: Device
+) -> None:
+    rows = [
+        {"value": float(i), "time": iso(BASE + timedelta(hours=i))} for i in range(5)
+    ]
+    await authed_client.post(f"/devices/{device.id}/readings/bulk", json=rows)
+    
+    resp = await authed_client.delete(
+        "/readings",
+        params={
+            "device_id": str(device.id),
+            "start": iso(BASE + timedelta(hours=1)),
+            "end": iso(BASE + timedelta(hours=4)),
+            "dry_run": True
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json()["count"] == 3
+    
+    listed = await authed_client.get("/readings", params={"device_id": str(device.id)})
+    assert [r["value"] for r in listed.json()] == [4.0, 3.0, 2.0, 1.0, 0.0]
+
+
+async def test_cannot_delete_readings_outside_time_window(
+    authed_client: AsyncClient, device: Device
+) -> None:
+    """Timestamps must be within a reasonable range."""
+    past_timestamp = datetime(1969, 12, 31, 23, 59, 59, tzinfo=UTC).isoformat()
+
+    past_start = await authed_client.delete(
+        "/readings",
+        params={
+            "device_id": str(device.id),
+            "start": past_timestamp,
+        },
+    )
+
+    past_end = await authed_client.delete(
+        "/readings",
+        params={
+            "device_id": str(device.id),
+            "end": past_timestamp,
+        },
+    )
+
+    future_timestamp = (datetime.now(tz=UTC) + timedelta(minutes=30)).isoformat()
+
+    future_start = await authed_client.delete(
+        "/readings",
+        params={
+            "device_id": str(device.id),
+            "start": future_timestamp,
+        },
+    )
+
+    future_end = await authed_client.delete(
+        "/readings",
+        params={
+            "device_id": str(device.id),
+            "end": future_timestamp,
+        },
+    )
+    assert past_start.status_code == past_end.status_code == future_start.status_code == future_end.status_code == 422
+    assert past_start.json()["code"] == past_end.json()["code"] == future_start.json()["code"] == future_end.json()["code"] == "validation_error"
+    assert past_start.json()["field"] == future_start.json()["field"] == "start"
+    assert past_end.json()["field"] == future_end.json()["field"] == "end"
+
 # --- Cross-cutting ----------------------------------------------------------
 
 
@@ -676,6 +813,7 @@ async def test_routes_require_authentication(client: AsyncClient, device: Device
         ("GET", "/readings"),
         ("GET", "/readings/aggregate"),
         ("GET", "/readings/alerts"),
+        ("DELETE", "/readings"),
     ]
     for method, url in endpoints:
         resp = await client.request(method, url)

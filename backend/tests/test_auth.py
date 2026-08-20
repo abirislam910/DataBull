@@ -317,7 +317,7 @@ async def test_me_never_exposes_the_password_hash(authed_client: AsyncClient) ->
     )
 
 
-async def test_me_requires_a_token(client: AsyncClient) -> None:
+async def test_me_requires_authentication(client: AsyncClient) -> None:
     resp = await client.get("/auth/me")
     assert resp.status_code == 401, resp.text
     assert resp.json()["code"] == "not_authenticated", (
@@ -394,7 +394,7 @@ async def test_delete_me_rejects_wrong_password(
     assert still_there is not None, "the user should not be deleted with wrong password"
 
 
-async def test_delete_me_requires_a_token(client: AsyncClient) -> None:
+async def test_delete_me_requires_authentication(client: AsyncClient) -> None:
     resp = await client.post("/auth/me/delete", json={"password": "a-good-password"})
     assert resp.status_code == 401, resp.text
     assert resp.json()["code"] == "not_authenticated", (

@@ -230,3 +230,27 @@ class AlertFilters(_Limit):
     @classmethod
     def normalize_since(cls, value: datetime) -> datetime:
         return ensure_utc(value)
+
+
+class DeleteReadingsFilters(_TimeWindow):
+    """Query params for `DELETE /readings`.
+
+    `device_id` is required: deleting all readings across all devices is not
+    allowed.
+    """
+
+    device_id: uuid.UUID
+    dry_run: bool = Field(default=False, description="If true, return how many rows would be deleted without actually deleting them.")
+
+    @model_validator(mode="after")
+    def request_body_must_include_bounds(self) -> Self:
+        """A request must include either a start or and end timestamp"""
+        if self.start is None and self.end is None:
+            raise ValueError("A request must include either a start or and end timestamp.")
+        return self
+
+
+class DeleteReadingsResponse(BaseModel):
+    """`DELETE /readings` → `{count}`."""
+
+    count: int
