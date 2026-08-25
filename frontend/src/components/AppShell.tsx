@@ -19,7 +19,7 @@ export function AppShell(): JSX.Element {
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-8 px-6">
           <span className="flex items-center gap-2 font-semibold text-text">
             <Activity className="h-5 w-5 text-accent" aria-hidden />
-            Telemetry
+            DataBull
           </span>
 
           <nav className="flex items-center gap-1" aria-label="Main">
