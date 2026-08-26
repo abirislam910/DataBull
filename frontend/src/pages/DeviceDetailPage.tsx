@@ -99,9 +99,9 @@ export function DeviceDetailPage(): JSX.Element {
             Most recent {READING_LIMIT} readings. Dashed lines mark configured thresholds.
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className='-ml-12'>
           {readings.isPending || device.isPending ? (
-            <ChartSkeleton className="h-[400px]" />
+            <ChartSkeleton className="h-[500px]" />
           ) : readings.isError ? (
             <ErrorState error={readings.error} onRetry={() => void readings.refetch()} />
           ) : chartData.length === 0 ? (
@@ -115,7 +115,7 @@ export function DeviceDetailPage(): JSX.Element {
               unit={device.data.unit}
               minThreshold={device.data.min_threshold}
               maxThreshold={device.data.max_threshold}
-              height={400}
+              height={500}
             />
           )}
         </CardContent>

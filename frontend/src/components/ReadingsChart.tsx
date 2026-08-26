@@ -100,9 +100,10 @@ export function ReadingsChart({
           minTickGap={48}
         />
         <YAxis
+          label={unit}
           tick={{ fill: TOKEN.textMuted, fontFamily: MONO_FONT, fontSize: 12 }}
           stroke={TOKEN.border}
-          width={56}
+          width={100}
         />
         <Tooltip
           content={<ChartTooltip unit={unit} />}

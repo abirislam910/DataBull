@@ -6,7 +6,7 @@
  * body: when the backend names a field, the message is attached to that input
  * rather than dumped in a generic banner.
  */
-import { Activity, Loader2 } from 'lucide-react'
+import { ZodiacTaurus, Loader2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -66,8 +66,8 @@ export function AuthForm({
       <Card className="w-full max-w-md">
         <CardHeader>
           <span className="flex items-center gap-2 text-accent">
-            <Activity className="h-5 w-5" aria-hidden />
-            <span className="text-chrome font-medium">Telemetry</span>
+            <ZodiacTaurus className="h-5 w-5" aria-hidden />
+            <span className="text-chrome font-medium">DataBull</span>
           </span>
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>

@@ -1,4 +1,4 @@
-import { Activity, HardDrive, LogOut } from 'lucide-react'
+import { Activity, HardDrive, LogOut, ZodiacTaurus } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth'
@@ -17,10 +17,12 @@ export function AppShell(): JSX.Element {
     <div className="min-h-screen bg-bg">
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-8 px-6">
-          <span className="flex items-center gap-2 font-semibold text-text">
-            <Activity className="h-5 w-5 text-accent" aria-hidden />
-            DataBull
-          </span>
+          <NavLink to='/dashboard' className='flex items-center gap-2 rounded-md px-3 py-2 text-chrome transition-colors text-text-secondary hover:bg-surface-hover hover:text-text'>
+            <span className="flex items-center gap-2 font-semibold text-text">
+                <ZodiacTaurus className="h-5 w-5 text-accent" aria-hidden />
+                DataBull
+            </span>
+          </NavLink>
 
           <nav className="flex items-center gap-1" aria-label="Main">
             {NAV_ITEMS.map(({ to, label, icon: Icon }) => (

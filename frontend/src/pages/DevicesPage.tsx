@@ -1,7 +1,8 @@
 /** Device list + registration. Table over cards, per SPEC's five-or-more rule. */
-import { HardDrive, Loader2, Plus, Trash2 } from 'lucide-react'
+import { HardDrive, Loader2, Plus, X, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/states/DataStates'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -115,13 +116,25 @@ export function DevicesPage(): JSX.Element {
   const devices = useDevices()
   const deleteDevice = useDeleteDevice()
   const [isAdding, setIsAdding] = useState(false)
+  // Holds the device awaiting confirmation. Storing the device (not just an id)
+  // keeps its name available after the row unmounts on a successful delete.
+  const [pendingDelete, setPendingDelete] = useState<Device | null>(null)
+
+  function confirmDelete(): void {
+    if (pendingDelete === null) return
+    deleteDevice.mutate(pendingDelete.id, {
+      onSuccess: () => setPendingDelete(null),
+      // On failure the dialog stays open and renders the error, so the user is
+      // told rather than left guessing why the row is still there.
+    })
+  }
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-page-title font-semibold text-text">Devices</h1>
         <Button size="sm" onClick={() => setIsAdding((open) => !open)}>
-          <Plus className="h-4 w-4" aria-hidden />
+          {isAdding ? <X className="h-4 w-4" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
           {isAdding ? 'Cancel' : 'New device'}
         </Button>
       </div>
@@ -185,11 +198,14 @@ export function DevicesPage(): JSX.Element {
                     </TableCell>
                     <TableCell>
                       <Button
-                        variant="ghost"
+                        variant="destructive"
                         size="icon"
                         aria-label={`Delete ${device.name}`}
-                        disabled={deleteDevice.isPending}
-                        onClick={() => deleteDevice.mutate(device.id)}
+                        onClick={() => {
+                          // Opens the confirmation; nothing is deleted yet.
+                          deleteDevice.reset()
+                          setPendingDelete(device)
+                        }}
                       >
                         <Trash2 className="h-4 w-4" aria-hidden />
                       </Button>
@@ -201,6 +217,25 @@ export function DevicesPage(): JSX.Element {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null)
+        }}
+        title="Delete this device?"
+        description={
+          <>
+            <span className="font-mono text-text">{pendingDelete?.name}</span> and{' '}
+            <strong className="font-medium text-text">every reading recorded for it</strong> will be
+            permanently deleted. This cannot be undone.
+          </>
+        }
+        confirmLabel="Delete device"
+        onConfirm={confirmDelete}
+        isPending={deleteDevice.isPending}
+        error={deleteDevice.error}
+      />
     </div>
   )
 }

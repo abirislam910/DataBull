@@ -64,7 +64,7 @@ def upgrade() -> None:
         "devices",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
-        sa.Column("name", sa.String(length=255), nullable=False),
+        sa.Column("name", sa.String(length=50), nullable=False),
         sa.Column("type", DEVICE_TYPE, nullable=False),
         sa.Column("unit", sa.String(length=32), nullable=False),
         sa.Column("min_threshold", sa.Float(), nullable=True),
