@@ -67,6 +67,8 @@ cd frontend && npm install              # first-time setup
 cd frontend && npm run dev              # dev server on 5173 (proxies /api paths to :8000)
 cd frontend && npm test                 # vitest
 cd frontend && npm run lint             # eslint
+cd frontend && npm run format           # prettier --write
+cd frontend && npm run format:check     # prettier --check (what CI runs)
 cd frontend && npm run typecheck        # tsc --noEmit
 cd frontend && npm run build            # tsc -b + vite build
 cd frontend && npm run gen:api          # regenerate src/lib/api-types.ts from openapi.json

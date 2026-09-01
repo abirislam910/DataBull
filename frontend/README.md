@@ -6,14 +6,31 @@ design contract.
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173, proxies API paths to :8000
-npm test           # vitest
-npm run typecheck  # tsc --noEmit
-npm run lint       # eslint
+npm run dev           # http://localhost:5173, proxies /api/* to :8000
+npm test              # vitest
+npm run typecheck     # tsc --noEmit
+npm run lint          # eslint
+npm run format        # prettier --write
+npm run format:check  # prettier --check
+npm run build         # tsc -b && vite build
 ```
 
 The dev server needs the API on `:8000`. See the repo README for bringing up the
 backend and database.
+
+## CI
+
+The `frontend` job in `.github/workflows/ci.yml` runs, in order: `npm ci`,
+`npm audit --audit-level=high`, lint, format check, typecheck, tests, build. It
+runs in parallel with the backend job, so a frontend change does not wait on
+testcontainers pulling Postgres.
+
+To reproduce a CI failure locally, run the same sequence — `npm ci` rather than
+`npm install`, since it installs strictly from the lockfile.
+
+Prettier ignores `src/lib/api-types.ts` and `openapi.json` (see
+`.prettierignore`): both are generated, and formatting them would make the
+formatter and the generator undo each other on every regeneration.
 
 ## API types are generated, never hand-written
 

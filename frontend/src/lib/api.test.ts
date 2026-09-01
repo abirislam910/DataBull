@@ -62,9 +62,11 @@ describe('apiFetch', () => {
   it('parses the documented error body into an ApiError', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse({ detail: 'Device not found.', code: 'device_not_found' }, 404),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse({ detail: 'Device not found.', code: 'device_not_found' }, 404),
+        ),
     )
 
     await expect(apiFetch('/devices/nope')).rejects.toMatchObject({
@@ -77,12 +79,11 @@ describe('apiFetch', () => {
   it('exposes the field name when the API blames one', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse(
-          { detail: 'too short', code: 'validation_error', field: 'password' },
-          422,
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse({ detail: 'too short', code: 'validation_error', field: 'password' }, 422),
         ),
-      ),
     )
 
     const error = await apiFetch('/auth/signup').catch((caught: unknown) => caught)
@@ -93,9 +94,11 @@ describe('apiFetch', () => {
   it('flags 401s so callers can stop retrying', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse({ detail: 'Not authenticated.', code: 'not_authenticated' }, 401),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse({ detail: 'Not authenticated.', code: 'not_authenticated' }, 401),
+        ),
     )
 
     const error = (await apiFetch('/auth/me').catch((caught: unknown) => caught)) as ApiError

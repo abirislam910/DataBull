@@ -134,7 +134,11 @@ export function DevicesPage(): JSX.Element {
       <div className="flex items-center justify-between">
         <h1 className="text-page-title font-semibold text-text">Devices</h1>
         <Button size="sm" onClick={() => setIsAdding((open) => !open)}>
-          {isAdding ? <X className="h-4 w-4" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
+          {isAdding ? (
+            <X className="h-4 w-4" aria-hidden />
+          ) : (
+            <Plus className="h-4 w-4" aria-hidden />
+          )}
           {isAdding ? 'Cancel' : 'New device'}
         </Button>
       </div>

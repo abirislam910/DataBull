@@ -30,7 +30,11 @@ describe('EmptyState', () => {
 
   it('renders a call to action when one is supplied', () => {
     render(
-      <EmptyState icon={HardDrive} message="No devices yet." action={<button>Add a device</button>} />,
+      <EmptyState
+        icon={HardDrive}
+        message="No devices yet."
+        action={<button>Add a device</button>}
+      />,
     )
     expect(screen.getByRole('button', { name: 'Add a device' })).toBeInTheDocument()
   })

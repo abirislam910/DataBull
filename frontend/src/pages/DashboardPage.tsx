@@ -6,7 +6,12 @@ import { Activity, BellOff, HardDrive, Plus, TriangleAlert } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { ReadingsChart, type ChartPoint } from '@/components/ReadingsChart'
-import { ChartSkeleton, EmptyState, ErrorState, TableSkeleton } from '@/components/states/DataStates'
+import {
+  ChartSkeleton,
+  EmptyState,
+  ErrorState,
+  TableSkeleton,
+} from '@/components/states/DataStates'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -89,12 +94,7 @@ export function DashboardPage(): JSX.Element {
   // first device and label it honestly rather than implying a fleet-wide roll-up
   // the API cannot yet produce. See the note in the card header.
   const primaryDevice = devices.data?.[0]
-  const activity = useAggregate(
-    primaryDevice?.id ?? '',
-    '1h',
-    'avg',
-    activityStart,
-  )
+  const activity = useAggregate(primaryDevice?.id ?? '', '1h', 'avg', activityStart)
 
   const chartData: ChartPoint[] =
     activity.data?.map((bucket) => ({
@@ -135,8 +135,7 @@ export function DashboardPage(): JSX.Element {
           <CardTitle>Activity — last hour</CardTitle>
           {primaryDevice ? (
             <p className="text-chrome text-text-secondary">
-              Hourly average for{' '}
-              <span className="font-mono text-text">{primaryDevice.name}</span>
+              Hourly average for <span className="font-mono text-text">{primaryDevice.name}</span>
             </p>
           ) : null}
         </CardHeader>
@@ -169,11 +168,7 @@ export function DashboardPage(): JSX.Element {
           ) : chartData.length === 0 ? (
             <EmptyState icon={Activity} message="No readings recorded in the last hour." />
           ) : (
-            <ReadingsChart
-              data={chartData}
-              unit={primaryDevice?.unit ?? ''}
-              height={240}
-            />
+            <ReadingsChart data={chartData} unit={primaryDevice?.unit ?? ''} height={240} />
           )}
         </CardContent>
       </Card>

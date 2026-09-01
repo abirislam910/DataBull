@@ -126,17 +126,14 @@ export function useAlerts(since: string, deviceId?: string): UseQueryResult<Aler
 export function useCreateDevice(): UseMutationResult<Device, Error, DeviceCreate> {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: DeviceCreate) =>
-      apiFetch<Device>('/devices', { method: 'POST', body }),
+    mutationFn: (body: DeviceCreate) => apiFetch<Device>('/devices', { method: 'POST', body }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.devices })
     },
   })
 }
 
-export function useUpdateDevice(
-  deviceId: string,
-): UseMutationResult<Device, Error, DeviceUpdate> {
+export function useUpdateDevice(deviceId: string): UseMutationResult<Device, Error, DeviceUpdate> {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (body: DeviceUpdate) =>
@@ -151,8 +148,7 @@ export function useUpdateDevice(
 export function useDeleteDevice(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (deviceId: string) =>
-      apiFetch<void>(`/devices/${deviceId}`, { method: 'DELETE' }),
+    mutationFn: (deviceId: string) => apiFetch<void>(`/devices/${deviceId}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.devices })
     },

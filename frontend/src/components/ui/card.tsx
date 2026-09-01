@@ -3,7 +3,11 @@ import { cn } from '@/lib/utils'
 
 const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('rounded-md border border-border bg-surface', className)} {...props} />
+    <div
+      ref={ref}
+      className={cn('rounded-md border border-border bg-surface', className)}
+      {...props}
+    />
   ),
 )
 Card.displayName = 'Card'
@@ -30,7 +34,9 @@ const CardDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLPara
 CardDescription.displayName = 'CardDescription'
 
 const CardContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />,
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />
+  ),
 )
 CardContent.displayName = 'CardContent'
 

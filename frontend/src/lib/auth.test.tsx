@@ -98,7 +98,10 @@ describe('AuthProvider', () => {
       vi
         .fn()
         .mockResolvedValue(
-          jsonResponse({ detail: 'Incorrect email or password.', code: 'invalid_credentials' }, 401),
+          jsonResponse(
+            { detail: 'Incorrect email or password.', code: 'invalid_credentials' },
+            401,
+          ),
         ),
     )
     render(

@@ -1,4 +1,4 @@
-name: backend
+name: ci
 
 on:
   push:
@@ -50,3 +50,46 @@ jobs:
         env:
           SECRET_KEY: ci-only-secret-key-not-used-for-any-deployment
         run: pytest -q
+
+  # Independent of the backend job so the two run in parallel — a frontend-only
+  # change gets its answer without waiting on testcontainers to pull Postgres.
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # `npm ci`, not `npm install`: it installs exactly what the lockfile
+      # pins and fails if package.json and the lockfile disagree, so CI cannot
+      # silently test a different dependency tree than the one committed.
+      - name: Install (from lockfile)
+        run: npm ci
+
+      - name: Audit (high severity and above)
+        run: npm audit --audit-level=high
+
+      - name: Lint (eslint)
+        run: npm run lint
+
+      - name: Format check (prettier)
+        run: npm run format:check
+
+      - name: Type-check (tsc strict)
+        run: npm run typecheck
+
+      - name: Tests (vitest)
+        run: npm test
+
+      # The build is its own gate: `tsc --noEmit` does not exercise the bundler,
+      # so a broken import path or a bad Vite config only surfaces here.
+      - name: Build
+        run: npm run build

@@ -6,7 +6,12 @@ import { Activity, ArrowLeft, BellOff } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ReadingsChart, type ChartPoint } from '@/components/ReadingsChart'
-import { ChartSkeleton, EmptyState, ErrorState, TableSkeleton } from '@/components/states/DataStates'
+import {
+  ChartSkeleton,
+  EmptyState,
+  ErrorState,
+  TableSkeleton,
+} from '@/components/states/DataStates'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -65,9 +70,7 @@ export function DeviceDetailPage(): JSX.Element {
   )
 
   if (device.isError) {
-    return (
-      <ErrorState error={device.error} onRetry={() => void device.refetch()} />
-    )
+    return <ErrorState error={device.error} onRetry={() => void device.refetch()} />
   }
 
   return (
@@ -99,16 +102,13 @@ export function DeviceDetailPage(): JSX.Element {
             Most recent {READING_LIMIT} readings. Dashed lines mark configured thresholds.
           </p>
         </CardHeader>
-        <CardContent className='-ml-12'>
+        <CardContent className="-ml-12">
           {readings.isPending || device.isPending ? (
             <ChartSkeleton className="h-[500px]" />
           ) : readings.isError ? (
             <ErrorState error={readings.error} onRetry={() => void readings.refetch()} />
           ) : chartData.length === 0 ? (
-            <EmptyState
-              icon={Activity}
-              message="No readings recorded for this device yet."
-            />
+            <EmptyState icon={Activity} message="No readings recorded for this device yet." />
           ) : (
             <ReadingsChart
               data={chartData}

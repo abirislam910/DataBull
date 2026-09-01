@@ -105,15 +105,11 @@ describe('deleting a device', () => {
     renderWithProviders(<DevicesPage />)
     await openDeleteDialog()
 
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus(),
-    )
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus())
   })
 
   it('keeps the dialog open and shows the reason when the delete fails', async () => {
-    stubApi(() =>
-      jsonResponse({ detail: 'Device not found.', code: 'device_not_found' }, 404),
-    )
+    stubApi(() => jsonResponse({ detail: 'Device not found.', code: 'device_not_found' }, 404))
     renderWithProviders(<DevicesPage />)
     await openDeleteDialog()
 

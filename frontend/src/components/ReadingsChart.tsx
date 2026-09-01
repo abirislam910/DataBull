@@ -57,9 +57,7 @@ function ChartTooltip({
   if (active !== true || point === undefined) return null
   return (
     <div className="rounded-md border-t-2 border-t-accent bg-surface px-3 py-2 shadow-lg">
-      <p className="font-mono text-cell text-text-muted">
-        {new Date(point.time).toLocaleString()}
-      </p>
+      <p className="font-mono text-cell text-text-muted">{new Date(point.time).toLocaleString()}</p>
       <p className="font-mono text-chrome text-text">
         {point.value.toFixed(2)} {unit}
       </p>

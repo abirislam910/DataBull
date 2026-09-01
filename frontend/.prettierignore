@@ -1,0 +1,11 @@
+# Build output and dependencies
+dist
+node_modules
+coverage
+*.tsbuildinfo
+
+# Generated from the backend's OpenAPI schema by `npm run gen:api`.
+# Formatting these would put the formatter and the generator in a loop, each
+# undoing the other on every regeneration.
+src/lib/api-types.ts
+openapi.json

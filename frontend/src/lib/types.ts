@@ -25,8 +25,11 @@ export type Credentials = Schemas['Credentials']
 export type TokenResponse = Schemas['TokenResponse']
 
 /** The device types the API accepts, for building selects without duplication. */
-export const DEVICE_TYPES = ['temperature', 'pressure', 'flow'] as const satisfies
-  readonly DeviceType[]
+export const DEVICE_TYPES = [
+  'temperature',
+  'pressure',
+  'flow',
+] as const satisfies readonly DeviceType[]
 
 /** Default unit suggestions per device type — a UI nicety, not an API rule. */
 export const UNIT_BY_TYPE: Record<DeviceType, string> = {
