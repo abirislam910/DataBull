@@ -38,7 +38,7 @@ function stubSuccessfulLogin(): void {
   vi.stubGlobal(
     'fetch',
     vi.fn((input: string) => {
-      if (input === '/auth/login') {
+      if (input === '/api/auth/login') {
         return Promise.resolve(jsonResponse({ access_token: 'tok-123', token_type: 'bearer' }))
       }
       return Promise.resolve(

@@ -22,7 +22,9 @@ for name, dtype, unit, baseline, lo, hi in specs:
     for m in range(180, 0, -1):
         t = now - timedelta(minutes=m)
         val = baseline + baseline*0.15*math.sin(2*math.pi*m/60) + random.gauss(0, baseline*0.04)
-        if random.random() < 0.02: val *= 2.0     # occasional spike -> alert
+        rand = random.random()
+        if rand < 0.02: val *= 2.0     # occasional spike -> alert
+        elif rand > 0.02 and rand < 0.04: val -= 50
         rows.append({"value": round(val,2), "time": t.isoformat()})
     n = call(f"/devices/{dev['id']}/readings/bulk", rows, tok)["count"]
     print(f"  {name}: {n} readings")

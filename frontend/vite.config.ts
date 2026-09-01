@@ -13,11 +13,19 @@ export default defineConfig({
     // The API runs on 8000 in docker-compose. Proxying keeps the browser on a
     // single origin in dev, so there is no CORS configuration to maintain and
     // the app's fetch calls use plain relative paths in every environment.
+    //
+    // ONE rule, under a prefix the SPA never routes on. Proxying bare paths
+    // (`/devices`, `/readings`) was a bug: a hard refresh at /devices is a
+    // document request that matched the proxy and returned the API's 401 JSON
+    // instead of index.html. `/api` cannot collide, because no client route
+    // starts with it. The rewrite strips the prefix so the backend keeps
+    // serving the paths SPEC documents.
     proxy: {
-      '/auth': 'http://localhost:8000',
-      '/devices': 'http://localhost:8000',
-      '/readings': 'http://localhost:8000',
-      '/health': 'http://localhost:8000',
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
     },
   },
   test: {

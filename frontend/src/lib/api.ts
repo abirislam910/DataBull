@@ -62,6 +62,22 @@ async function toApiError(response: Response): Promise<ApiError> {
   return new ApiError(response.status, response.statusText || 'Request failed', 'unknown_error')
 }
 
+/**
+ * Every API path is namespaced under `/api`.
+ *
+ * Without it the SPA's routes and the API's routes share one namespace, and a
+ * path like `/devices` means two different things depending on whether React
+ * Router or the server is answering. That ambiguity breaks on a hard refresh:
+ * the browser requests the document `GET /devices`, the dev-server proxy
+ * forwards it to the API, and the user sees a raw 401 JSON body instead of the
+ * app. Prefixing removes the collision structurally rather than by heuristic.
+ *
+ * The backend is unaware of this prefix — the dev proxy rewrites it away, so
+ * SPEC's endpoint contract (`/devices`, `/readings`, …) is unchanged. A
+ * deployment serving both from one origin needs the same rewrite at its edge.
+ */
+export const API_BASE = '/api'
+
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   body?: unknown
@@ -71,13 +87,14 @@ export interface RequestOptions {
 }
 
 function buildUrl(path: string, params: RequestOptions['params']): string {
-  if (!params) return path
+  const url = `${API_BASE}${path}`
+  if (!params) return url
   const search = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined) search.set(key, String(value))
   }
   const query = search.toString()
-  return query ? `${path}?${query}` : path
+  return query ? `${url}?${query}` : url
 }
 
 /**

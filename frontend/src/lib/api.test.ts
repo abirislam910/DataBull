@@ -37,13 +37,26 @@ describe('apiFetch', () => {
     expect(headers['Authorization']).toBeUndefined()
   })
 
+  it('namespaces every request under /api', async () => {
+    // Guards the fix for the hard-refresh bug: with bare paths, a document
+    // request for /devices matched the dev proxy and returned the API's 401
+    // JSON instead of the app. Client routes must never share a prefix with
+    // API calls.
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await apiFetch('/devices')
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/devices')
+  })
+
   it('drops undefined query params instead of serializing them', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]))
     vi.stubGlobal('fetch', fetchMock)
 
     await apiFetch('/readings', { params: { device_id: 'abc', start: undefined, limit: 10 } })
 
-    expect(fetchMock.mock.calls[0]?.[0]).toBe('/readings?device_id=abc&limit=10')
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/readings?device_id=abc&limit=10')
   })
 
   it('parses the documented error body into an ApiError', async () => {

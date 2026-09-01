@@ -97,7 +97,7 @@ describe('deleting a device', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Delete device' }))
 
     await waitFor(() => expect(deleteCalls()).toHaveLength(1))
-    expect(deleteCalls()[0]?.url).toBe(`/devices/${DEVICE.id}`)
+    expect(deleteCalls()[0]?.url).toBe(`/api/devices/${DEVICE.id}`)
   })
 
   it('does not put focus on the destructive button', async () => {
