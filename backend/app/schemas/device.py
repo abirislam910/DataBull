@@ -19,7 +19,7 @@ from app.models import DeviceType
 class DeviceCreate(BaseModel):
     """Body for `POST /devices`."""
 
-    name: str = Field(min_length=1, max_length=255)
+    name: str = Field(min_length=1, max_length=50)
     # Typed as the enum, so FastAPI rejects anything outside
     # temperature|pressure|flow with a 422 before the service ever runs.
     type: DeviceType
@@ -46,7 +46,7 @@ class DeviceCreate(BaseModel):
 
 
 class DeviceUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=255)
+    name: str | None = Field(default=None, min_length=1, max_length=50)
     min_threshold: float | None = None
     max_threshold: float | None = None
 

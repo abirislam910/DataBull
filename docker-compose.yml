@@ -11,12 +11,18 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d telemetry"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
 
   api:
     build: ./backend
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/telemetry
       # Required — the app will not start without it. Taken from your shell or

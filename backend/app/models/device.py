@@ -64,7 +64,7 @@ class Device(Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
 
-    name: Mapped[str] = mapped_column(String(255))
+    name: Mapped[str] = mapped_column(String(50))
 
     # Native Postgres ENUM named "device_type". By default SQLAlchemy would
     # persist the member *names* (e.g. "TEMPERATURE"); `values_callable` tells it

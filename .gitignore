@@ -19,5 +19,3 @@ dist/
 
 # OS
 .DS_Store
-
-Dockerfile
