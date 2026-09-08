@@ -17,7 +17,10 @@ dependencies = [
     "pyjwt[crypto]",
     "pwdlib[argon2]",
     "apscheduler",
-    "anthropic",
+    # Pinned to the 1.x major: 1.0 was a breaking release (httpx2, awaited raw
+    # responses). Left unpinned, CI resolved 1.x while this venv held 0.x — the
+    # kind of split where code passes locally and fails only in CI.
+    "anthropic>=1,<2",
     "numpy",
     "psycopg[binary]",
     "cachetools"
