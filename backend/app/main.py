@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 
-from app.api import auth, devices, readings
+from app.api import auth, chat, devices, readings
 from app.core.errors import register_exception_handlers
 
 app = FastAPI(title="Sensor Telemetry Platform")
@@ -15,6 +15,7 @@ register_exception_handlers(app)
 app.include_router(auth.router)
 app.include_router(devices.router)
 app.include_router(readings.router)
+app.include_router(chat.router)
 
 
 @app.get("/health")

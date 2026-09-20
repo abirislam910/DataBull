@@ -351,10 +351,14 @@ Owned by `/agent/prompt.py` as an immutable constant. Structural elements:
 - Tool errors become `ToolResult` events with an error summary rather than exceptions — the model gets a chance to recover
 ### LLM configuration
  
-- Model: `claude-sonnet-4-6` for prod, `claude-haiku-4-5-20251001` for dev/CI
-- Temperature: 0.2 (deterministic-ish for reproducibility)
-- Max tokens: 1024 per turn
-- Timeouts: 60s total per turn; individual LLM call timeout 30s
+- Model: `claude-sonnet-5` (`AGENT_MODEL`). Current generation of the Sonnet tier, and cheaper than the `claude-sonnet-4-6` originally specified here — $2/$10 per MTok against $3/$15. Use `claude-haiku-4-5` for cost-sensitive bulk runs; note model IDs carry **no** date suffix.
+- Effort: `low` (`AGENT_EFFORT`, one of `low|medium|high|xhigh|max`). This replaces the temperature 0.2 this section previously specified: sampling parameters (`temperature`, `top_p`, `top_k`) are **rejected with a 400** by current-generation models, and effort is the supported way to trade thoroughness against token spend. `low` suits four narrow tools and a three-sentence answer budget.
+- Max tokens: 1024 per turn (`AGENT_MAX_TOKENS`)
+- Timeouts: 60s total per turn (`AGENT_TURN_TIMEOUT_SECONDS`); individual LLM call timeout 30s (`AGENT_LLM_TIMEOUT_SECONDS`)
+- Cost: the `Done` event's `cost_usd` is derived from the published per-MTok rates in `agent/llm_client.py`. An unknown model reports `0.0` rather than a guess.
+- The system prompt and tool list are sent as a cached prefix (`cache_control: ephemeral`), so follow-up turns in a conversation re-read them at cache rates.
+
+`ANTHROPIC_API_KEY` is **optional**, unlike `SECRET_KEY`: the API boots and serves devices and readings without it, and only `POST /chat/stream` fails — with `503 assistant_unavailable` — so a deployment with no key is degraded rather than down.
 ---
  
 ## Frontend
