@@ -43,6 +43,14 @@ export function notifyUnauthorized(): void {
   onUnauthorized()
 }
 
+type cacheClearer = () => void
+
+let clearCache: cacheClearer = () => {}
+
+export function setCacheClearer(clearer: cacheClearer): void {
+  clearCache = clearer
+}
+
 export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
   // The token is a ref, not state: `api.ts` reads it through a getter at call
   // time, and re-rendering on every token change would buy nothing. `user` is
@@ -94,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     // only copy is exactly what "logging out" means here. README documents this.
     tokenRef.current = null
     setUser(null)
+    clearCache()
   }, [])
 
   useMemo(() => {

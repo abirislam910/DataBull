@@ -1,10 +1,9 @@
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import { ApiError } from '@/lib/api'
-import { notifyUnauthorized } from '@/lib/auth'
 import { AppShell } from '@/components/AppShell'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
-import { AuthProvider } from '@/lib/auth'
+import { AuthProvider, notifyUnauthorized, setCacheClearer } from '@/lib/auth'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { DeviceDetailPage } from '@/pages/DeviceDetailPage'
 import { DevicesPage } from '@/pages/DevicesPage'
@@ -31,6 +30,8 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+setCacheClearer(() => queryClient.clear())
 
 export function App(): JSX.Element {
   return (
