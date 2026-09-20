@@ -1,5 +1,7 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom'
+import { ApiError } from '@/lib/api'
+import { notifyUnauthorized } from '@/lib/auth'
 import { AppShell } from '@/components/AppShell'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AuthProvider } from '@/lib/auth'
@@ -10,6 +12,16 @@ import { LoginPage } from '@/pages/LoginPage'
 import { SignupPage } from '@/pages/SignupPage'
 
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      if (error instanceof ApiError && error.isUnauthorized) notifyUnauthorized()
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      if (error instanceof ApiError && error.isUnauthorized) notifyUnauthorized()
+    },
+  }),
   defaultOptions: {
     queries: {
       // Telemetry ages fast; a stale window longer than the poll interval would

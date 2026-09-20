@@ -5,7 +5,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AuthProvider, useAuth } from './auth'
+import { AuthProvider, useAuth, notifyUnauthorized } from './auth'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -133,4 +133,16 @@ describe('AuthProvider', () => {
     expect(JSON.stringify(sessionStorage)).not.toContain('tok-123')
     expect(document.cookie).not.toContain('tok-123')
   })
+
+  it('registers logout as the unauthorized handler', async () => {
+    stubSuccessfulLogin()
+    render(<AuthProvider><Probe /></AuthProvider>)
+
+    await userEvent.click(screen.getByText('login'))
+    await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('in'))
+
+    notifyUnauthorized()
+
+    await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('out'))
+})
 })

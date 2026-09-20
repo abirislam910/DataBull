@@ -31,6 +31,18 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+type LogoutHandler = () => void
+
+let onUnauthorized: LogoutHandler = () => {}
+
+export function setUnauthorizedHandler(handler: LogoutHandler): void {
+  onUnauthorized = handler
+}
+
+export function notifyUnauthorized(): void {
+  onUnauthorized()
+}
+
 export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
   // The token is a ref, not state: `api.ts` reads it through a getter at call
   // time, and re-rendering on every token change would buy nothing. `user` is
@@ -83,6 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     tokenRef.current = null
     setUser(null)
   }, [])
+
+  useMemo(() => {
+    setUnauthorizedHandler(logout)
+  }, [logout])
 
   const value = useMemo<AuthContextValue>(
     () => ({ user, isAuthenticated: user !== null, isLoading, login, signup, logout }),
