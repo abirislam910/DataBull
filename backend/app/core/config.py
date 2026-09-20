@@ -64,6 +64,39 @@ class Settings(BaseSettings):
 
     max_aggregate_buckets: int = 1000
 
+    # --- Agent -----------------------------------------------------------
+    # Optional, unlike SECRET_KEY: the API must still boot and serve devices
+    # and readings on a deployment that has no Anthropic key. Only /chat/stream
+    # needs it, and it reports the misconfiguration as an error event rather
+    # than taking the whole service down at startup.
+    anthropic_api_key: str | None = None
+
+    # SPEC § LLM configuration. Sonnet 5 is the current generation of the tier
+    # SPEC named — cheaper than the `claude-sonnet-4-6` it originally specified
+    # ($2/$10 vs $3/$15 per MTok) as well as newer.
+    agent_model: str = "claude-sonnet-5"
+
+    # `effort` replaces the `temperature: 0.2` SPEC asked for: sampling
+    # parameters are rejected outright by current-generation models, and effort
+    # is the supported way to trade thoroughness against token spend. `low`
+    # suits four narrow tools and answers capped at three sentences.
+    agent_effort: str = "low"
+
+    # SPEC: 1024 output tokens per turn. Deliberately small — the system prompt
+    # caps answers at ~3 sentences, so anything larger is wasted headroom.
+    agent_max_tokens: int = 1024
+
+    # SPEC § Tool policy: a hard stop against a model that keeps calling tools.
+    agent_max_tool_calls: int = 10
+
+    # SPEC: tool results over ~2KB are summarized before being fed back, so one
+    # broad query cannot blow up the context (and the bill) of every later turn.
+    agent_tool_result_max_bytes: int = 2048
+
+    # SPEC § LLM configuration: 30s per LLM call, 60s for the whole turn.
+    agent_llm_timeout_seconds: float = 30.0
+    agent_turn_timeout_seconds: float = 60.0
+
     @model_validator(mode="after")
     def validate_limits(self) -> Self:
         """Check that the default limit is not greater than the max limit."""
