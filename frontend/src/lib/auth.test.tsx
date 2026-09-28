@@ -133,4 +133,20 @@ describe('AuthProvider', () => {
     expect(JSON.stringify(sessionStorage)).not.toContain('tok-123')
     expect(document.cookie).not.toContain('tok-123')
   })
+
+  it('registers logout as the unauthorized handler', async () => {
+    stubSuccessfulLogin()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
+
+    await userEvent.click(screen.getByText('login'))
+    await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('in'))
+
+    notifyUnauthorized()
+
+    await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('out'))
+  })
 })
