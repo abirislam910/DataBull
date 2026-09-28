@@ -2,11 +2,11 @@
 
 **An industrial time-series telemetry platform built with FastAPI and TimescaleDB, with an AI operator's assistant powered by Claude.**
 
-DataBull ingests sensor readings from industrial devices — temperature, pressure, and flow — and serves them back as raw series, bucketed rollups, or threshold breaches. Readings live in a TimescaleDB hypertable partitioned on time, so aggregate queries stay fast as history grows.
+DataBull ingests sensor readings from industrial devices,  temperature, pressure, and flow,  and serves them back as raw series, bucketed rollups, or threshold breaches. Readings live in a TimescaleDB hypertable partitioned on time, so aggregate queries stay fast as history grows.
 
 On top of the REST API sits an operator's assistant: a Claude tool-calling agent that answers natural-language questions about a device fleet ("has pump-3 drifted since Tuesday?") by calling the same telemetry layer the API exposes, and streams its reasoning, tool calls, and answer to the browser over Server-Sent Events.
 
-Every device, reading, and conversation is scoped to the authenticated user. Cross-user access returns `404`, never `403` — the API does not confirm that another tenant's resources exist.
+Every device, reading, and conversation is scoped to the authenticated user. Cross-user access returns `404`, never `403`,  the API does not confirm that another tenant's resources exist.
 
 ---
 
@@ -30,13 +30,13 @@ Every device, reading, and conversation is scoped to the authenticated user. Cro
 
 ## Features
 
-- **Time-Series Ingestion** — Single-reading and bulk endpoints (up to 10,000 rows per request) writing into a TimescaleDB hypertable partitioned on `time`.
-- **Windowed Aggregation** — `time_bucket` rollups at 1-hour, 1-day, or 1-week granularity with `avg`, `min`, `max`, or `p95` (via `percentile_cont`). Requests that would exceed 1,000 buckets are rejected at validation rather than served slowly.
-- **Threshold Alerting** — Per-device `min_threshold` / `max_threshold`. `GET /readings/alerts` returns every breach since a given timestamp, across the whole fleet or one device.
-- **Device Management** — Full CRUD over devices, each with a type (`temperature` / `pressure` / `flow`), a unit, and optional thresholds.
-- **JWT Authentication** — Stateless HS256 bearer tokens with argon2id password hashing. Login is timing-safe and does not reveal whether an email is registered.
-- **AI Operator's Assistant** — A Claude tool-calling agent over four typed tools, streamed to the client as SSE, with per-turn tool-call budgets, a wall-clock timeout, and token/cost accounting on every turn.
-- **Generated API Types** — The frontend's request and response types are generated from the backend's OpenAPI schema, so a contract change breaks the build instead of production.
+- **Time-Series Ingestion**,  Single-reading and bulk endpoints (up to 10,000 rows per request) writing into a TimescaleDB hypertable partitioned on `time`.
+- **Windowed Aggregation**,  `time_bucket` rollups at 1-hour, 1-day, or 1-week granularity with `avg`, `min`, `max`, or `p95` (via `percentile_cont`). Requests that would exceed 1,000 buckets are rejected at validation rather than served slowly.
+- **Threshold Alerting**,  Per-device `min_threshold` / `max_threshold`. `GET /readings/alerts` returns every breach since a given timestamp, across the whole fleet or one device.
+- **Device Management**,  Full CRUD over devices, each with a type (`temperature` / `pressure` / `flow`), a unit, and optional thresholds.
+- **JWT Authentication**,  Stateless HS256 bearer tokens with argon2id password hashing. Login is timing-safe and does not reveal whether an email is registered.
+- **AI Operator's Assistant**,  A Claude tool-calling agent over four typed tools, streamed to the client as SSE, with per-turn tool-call budgets, a wall-clock timeout, and token/cost accounting on every turn.
+- **Generated API Types**,  The frontend's request and response types are generated from the backend's OpenAPI schema, so a contract change breaks the build instead of production.
 
 ---
 
@@ -78,9 +78,9 @@ flowchart TB
     SV --> RD
 ```
 
-The agent reaches the database only through the same `/services/` functions the routers use, behind a set of Protocols. It never imports FastAPI, and the data plane never imports the agent — the two are separable by design.
+The agent reaches the database only through the same `/services/` functions the routers use, behind a set of Protocols. It never imports FastAPI, and the data plane never imports the agent,  the two are separable by design.
 
-### Request Flow — Ingest & Aggregation
+### Request Flow,  Ingest & Aggregation
 
 ```mermaid
 sequenceDiagram
@@ -107,7 +107,7 @@ sequenceDiagram
     API-->>C: 200 OK
 ```
 
-### Request Flow — AI Assistant (SSE)
+### Request Flow,  AI Assistant (SSE)
 
 ```mermaid
 sequenceDiagram
@@ -135,7 +135,7 @@ sequenceDiagram
     R-->>U: data: {"type":"done","usage":{...}}
 ```
 
-The whole turn is bounded by a single timeout, not one per call — a model that keeps asking for one more tool cannot hold the connection open indefinitely. `run_agent` never raises for an LLM or tool failure: those become `error` events, and the stream always terminates with `done`.
+The whole turn is bounded by a single timeout, not one per call,  a model that keeps asking for one more tool cannot hold the connection open indefinitely. `run_agent` never raises for an LLM or tool failure: those become `error` events, and the stream always terminates with `done`.
 
 ### Authentication Flow
 
@@ -156,7 +156,7 @@ sequenceDiagram
     FE->>FE: Hold token in React context (memory only)
 
     FE->>API: Authorization: Bearer <token>
-    API->>DB: get_current_user — account looked up every request
+    API->>DB: get_current_user,  account looked up every request
     API-->>FE: 200, or 401 with a machine-readable code
 ```
 
@@ -164,21 +164,21 @@ sequenceDiagram
 
 ## Authentication & Security Decisions
 
-JWT bearer tokens, HS256, 24-hour expiry. Passwords are hashed with **argon2id** (via `pwdlib`) and must be at least 8 characters — there are no composition rules, since current NIST guidance favours length over forced symbol and case mixes.
+JWT bearer tokens, HS256, 24-hour expiry. Passwords are hashed with **argon2id** (via `pwdlib`) and must be at least 8 characters.
 
 The API refuses to start without `SECRET_KEY`. That is deliberate: the value signs every access token, so a shipped placeholder would let anyone mint a token for any account. Use a distinct key per environment.
 
 **Token in memory only.** The frontend keeps the token in React context, never in `localStorage` or `document.cookie`. Anything readable from JavaScript is exfiltratable by an XSS payload; a token held only in a closure is not. The cost is that a tab reload loses it and the user logs in again. A regression test asserts the token never reaches either store or the cookie jar.
 
-**No refresh tokens in v1.** A 24-hour access token is the whole session. When it expires, the user logs in again. Refresh tokens would smooth that over but add rotation, storage, and revocation machinery that v1 does not need.
+**No refresh tokens in v1.** A 24-hour access token is the whole session. When it expires, the user logs in again.
 
-**Stateless tokens cannot be revoked.** The server stores no record of issued tokens — it re-verifies the signature on each request instead. A token therefore stays valid until it expires, even if the user logs out elsewhere. Deleting a user *does* lock them out immediately, because `get_current_user` looks the account up on every request. Revoking one outstanding token would require a denylist, deliberately out of scope for v1. Rotating `SECRET_KEY` invalidates every outstanding token at once.
+**Stateless tokens cannot be revoked.** The server stores no record of issued tokens,  it re-verifies the signature on each request instead. A token therefore stays valid until it expires, even if the user logs out elsewhere. Deleting a user *does* lock them out immediately, because `get_current_user` looks the account up on every request. Revoking one outstanding token would require a denylist, deliberately out of scope for v1. Rotating `SECRET_KEY` invalidates every outstanding token at once.
 
-**Login does not reveal whether an email is registered.** Wrong password and unknown account return byte-identical 401s, and the unknown-account path still runs an argon2 comparison so response timing does not leak the difference either.
+**Login does not reveal whether an email is registered.** Wrong password and unknown account return identical 401s, and the unknown-account path still runs an argon2 comparison so response timing does not leak the difference either.
 
 **Tenant isolation returns 404, not 403.** Requesting another user's device is indistinguishable from requesting one that does not exist.
 
-**The client cannot inject a system turn.** `ChatMessageIn.role` accepts only `user` or `assistant`. A client-supplied `system` message would be a prompt-injection channel straight into the operator instructions; it is rejected at validation.
+**The client cannot inject a system turn.** `ChatMessageIn.role` accepts only `user` or `assistant`. A client-supplied `system` message would be a prompt-injection channel straight into the operator instructions which gets rejected at validation.
 
 ---
 
@@ -194,14 +194,12 @@ The API refuses to start without `SECRET_KEY`. That is deliberate: the value sig
 | Auth | PyJWT (HS256), `pwdlib[argon2]` (argon2id) |
 | AI | Anthropic SDK 1.x, `claude-sonnet-5`, native tool calling |
 | Streaming | Server-Sent Events over `StreamingResponse` |
-| Frontend | Vite, React 18, TypeScript (strict), React Router 6 |
+| Frontend | Vite, React 18, TypeScript (strict), TanStack Query, React Router 6 |
 | UI | Tailwind CSS, shadcn/ui, `lucide-react`, Recharts |
-| Server state | TanStack Query 5 |
-| API types | `openapi-typescript` (generated from OpenAPI) |
 | Backend tests | pytest, pytest-asyncio, httpx, testcontainers |
 | Frontend tests | Vitest, Testing Library, jsdom |
 | Lint / format | ruff (backend), ESLint + Prettier (frontend) |
-| Type checking | `mypy --strict`, `tsc --noEmit` |
+| Type checking | `mypy --strict`, `tsc` |
 | Local infra | Docker, Docker Compose |
 | CI | GitHub Actions |
 
@@ -217,9 +215,9 @@ DataBull/
 │   │   │   ├── auth.py           # signup, login, me, account deletion
 │   │   │   ├── devices.py        # device CRUD
 │   │   │   ├── readings.py       # ingest, query, aggregate, alerts, delete
-│   │   │   └── chat.py           # POST /chat/stream — SSE adapter only
-│   │   ├── agent/                # AI assistant — no FastAPI imports
-│   │   │   ├── runner.py         # run_agent — the single public entry point
+│   │   │   └── chat.py           # POST /chat/stream,  SSE adapter only
+│   │   ├── agent/                # AI assistant,  no FastAPI imports
+│   │   │   ├── runner.py         # run_agent,  the single public entry point
 │   │   │   ├── tools.py          # tool handlers; execute_tool never raises
 │   │   │   ├── tool_schemas.py   # JSON schemas sent to the model
 │   │   │   ├── services.py       # AgentServices + repository Protocols
@@ -236,14 +234,14 @@ DataBull/
 │   │   │   └── session.py        # async engine + session factory
 │   │   ├── models/               # SQLAlchemy models (user, device, reading)
 │   │   ├── schemas/              # Pydantic models, kept separate from ORM
-│   │   ├── services/             # business logic — all DB access
+│   │   ├── services/             # business logic,  all DB access
 │   │   └── main.py               # app factory, router registration, /health
 │   ├── alembic/
 │   │   └── versions/
 │   │       └── 0001_initial_schema.py   # includes create_hypertable(...)
 │   ├── scripts/
 │   │   └── demo_seed.py          # seeds a demo user, devices, and readings
-│   ├── tests/                    # pytest — real Postgres via testcontainers
+│   ├── tests/                    # pytest,  real Postgres via testcontainers
 │   │   ├── conftest.py           # db_session, client, authed_client fixtures
 │   │   ├── agent_fakes.py        # in-memory repos + scripted LLM client
 │   │   └── test_*.py
@@ -269,17 +267,17 @@ DataBull/
 │   │   │   └── ui/                    # shadcn primitives
 │   │   ├── lib/
 │   │   │   ├── api.ts            # fetch wrapper, error normalization
-│   │   │   ├── auth.tsx          # AuthProvider — token in memory
+│   │   │   ├── auth.tsx          # AuthProvider,  token in memory
 │   │   │   ├── queries.ts        # TanStack Query hooks + query keys
-│   │   │   ├── api-types.ts      # GENERATED — do not hand-edit
+│   │   │   ├── api-types.ts      # GENERATED,  do not hand-edit
 │   │   │   └── types.ts          # shared hand-written types
 │   │   └── test/                 # vitest setup + render helpers
-│   ├── tailwind.config.ts        # design tokens — never inline hex codes
+│   ├── tailwind.config.ts        # design tokens,  never inline hex codes
 │   ├── vite.config.ts            # dev server, /api proxy, vitest config
 │   └── package.json
 │
 ├── docs/
-│   ├── SPEC.md                   # the contract — read before any change
+│   ├── SPEC.md                   # the contract,  read before any change
 │   └── SIMULATOR.md              # placeholder; simulator not yet built
 │
 ├── evals/                        # placeholder; agent eval suite not yet built
@@ -301,7 +299,7 @@ DataBull/
 
 - Docker and Docker Compose
 - Python 3.12+ and Node.js 22+ (only for running tests or the frontend outside Docker)
-- An Anthropic API key — **optional**. Without one the API runs normally and only `POST /chat/stream` returns `503 assistant_unavailable`.
+- An Anthropic API key,  **optional**. Without one the API runs normally and only `POST /chat/stream` returns `503 assistant_unavailable`.
 
 ### Quick Start (Docker)
 
@@ -331,12 +329,7 @@ python backend/scripts/demo_seed.py
 cd frontend
 npm install
 npm run dev
-# App on http://localhost:5173
 ```
-
-The Vite dev server proxies `/api/*` to `http://localhost:8000`, stripping the prefix. The prefix exists so that a hard refresh on a client route such as `/devices` is served `index.html` rather than being matched by the proxy and handed the API's 401 JSON.
-
-> **Port note:** if `docker compose up` is already publishing port 8000, do not also run a local `uvicorn` on it. The two can bind different stacks (IPv6 vs IPv4) and the frontend may silently reach whichever `localhost` resolves to first.
 
 ### Backend Outside Docker
 
@@ -366,7 +359,7 @@ cd frontend && npm run gen:api
 
 | Variable | Required | Default | Description |
 |:---------|:---------|:--------|:------------|
-| `SECRET_KEY` | **Yes** | — | Signs and verifies every JWT. The app will not start without it. |
+| `SECRET_KEY` | **Yes** |,  | Signs and verifies every JWT. The app will not start without it. |
 | `DATABASE_URL` | No | `postgresql+psycopg://postgres:postgres@localhost:5432/telemetry` | Postgres DSN. One value drives both the async app engine and Alembic's sync engine. |
 | `SQL_ECHO` | No | `false` | Log every SQL statement. Noisy; useful when debugging. |
 | `ANTHROPIC_API_KEY` | No | unset | Only `POST /chat/stream` needs it. Unset means that one route 503s and nothing else changes. |
@@ -382,18 +375,16 @@ cd frontend && npm run gen:api
 | `MAX_BULK_READINGS` | No | `10000` | Cap on rows per bulk ingest request. |
 | `MAX_AGGREGATE_BUCKETS` | No | `1000` | Aggregate requests wider than this are rejected. |
 
-`.env` is gitignored. Never commit real secrets — document new variables in `.env.example` instead.
-
 ### Frontend
 
-No environment variables are required for local development; the dev server proxy handles API routing. A deployed frontend would need the API's origin supplied at build time.
+No environment variables are required for local development; the dev server proxy handles API routing.
 
 ---
 
 ## Testing & CI
 
 ```bash
-# Backend — spins up real Postgres + TimescaleDB in Docker
+# Backend,  spins up real Postgres + TimescaleDB in Docker
 cd backend && pytest
 cd backend && pytest -k test_agent      # one module
 
@@ -403,9 +394,9 @@ cd frontend && npm test
 
 **182 tests** in total: 153 backend, 29 frontend.
 
-Backend tests run against a **real** PostgreSQL + TimescaleDB container via `testcontainers` — never SQLite, never a mocked database. Each test runs inside a savepoint that is rolled back afterwards, so the suite is order-independent without rebuilding the schema per test.
+Backend tests run against a PostgreSQL + TimescaleDB container via testcontainers. Each test runs inside a savepoint that is rolled back afterwards, so the suite is order-independent without rebuilding the schema per test.
 
-The agent is tested without spending money. `LLMClient` is a Protocol, so a scripted fake replays model turns and `run_agent` executes unmodified — the real loop, the real tool dispatch, no network. The 25 agent tests run in about 0.1s with no database at all. Per `CLAUDE.md`, no test may make a live Anthropic call without a recorded fixture.
+The agent is tested without spending money. `LLMClient` is a Protocol, so a scripted fake replays model turns and `run_agent` executes unmodified,  the real loop, the real tool dispatch, no network. The 25 agent tests run in about 0.1s with no database at all. Per `CLAUDE.md`, no test may make a live Anthropic call without a recorded fixture.
 
 GitHub Actions runs two jobs on every push and pull request:
 
@@ -418,15 +409,13 @@ GitHub Actions runs two jobs on every push and pull request:
 
 ## Deployment
 
-There is **no hosted deployment yet.** The project runs locally through Docker Compose, and CI verifies every gate above on each push.
+There is **no hosted deployment yet.** The project runs locally through Docker Compose.
 
 What is in place for one:
 
 - **`backend/Dockerfile`** builds on `python:3.12-slim`, installs dependencies in a separate layer from application code so the cache survives code changes, and runs as a non-root `appuser`.
 - **`backend/entrypoint.sh`** runs `alembic upgrade head` before handing off to the process command, so a container start always reconciles the schema.
 - **`docker-compose.yml`** provisions `timescale/timescaledb:latest-pg16` with a health check, and the API waits on it rather than racing it.
-
-What a real deployment still needs: a managed Postgres with the TimescaleDB extension, `SECRET_KEY` injected from a secret store rather than a file, a static host for the built frontend with the API origin baked in at build time, and CORS configured for that origin (local development relies on the Vite proxy instead).
 
 ---
 
@@ -459,10 +448,10 @@ All times are UTC and ISO 8601. Errors share one shape: `{"detail": "...", "code
 |:-------|:---------|:-----|:------------|
 | POST | `/devices/{device_id}/readings` | Yes | Ingest one reading |
 | POST | `/devices/{device_id}/readings/bulk` | Yes | Ingest up to 10,000 readings in one request |
-| GET | `/readings` | Yes | Raw readings — `device_id`, `start`, `end`, `limit` |
-| GET | `/readings/aggregate` | Yes | Rollups — `device_id`, `window` (`1h`/`1d`/`1w`), `fn` (`avg`/`min`/`max`/`p95`), `start`, `end` |
-| GET | `/readings/alerts` | Yes | Threshold breaches — `since`, optional `device_id`, `limit` |
-| DELETE | `/readings` | Yes | Delete within a window — `device_id`, `start`, `end`, `dry_run` |
+| GET | `/readings` | Yes | Raw readings,  `device_id`, `start`, `end`, `limit` |
+| GET | `/readings/aggregate` | Yes | Rollups,  `device_id`, `window` (`1h`/`1d`/`1w`), `fn` (`avg`/`min`/`max`/`p95`), `start`, `end` |
+| GET | `/readings/alerts` | Yes | Threshold breaches,  `since`, optional `device_id`, `limit` |
+| DELETE | `/readings` | Yes | Delete within a window,  `device_id`, `start`, `end`, `dry_run` |
 
 Time windows are half-open: `start` is inclusive, `end` exclusive. Naive timestamps are interpreted as UTC.
 
@@ -476,8 +465,8 @@ Each SSE frame is `data: <json>`. Event types:
 
 | `type` | Payload |
 |:-------|:--------|
-| `text` | `delta` — a chunk of the assistant's prose |
-| `tool_use` | `name`, `input` — a tool the model decided to call |
+| `text` | `delta`,  a chunk of the assistant's prose |
+| `tool_use` | `name`, `input`,  a tool the model decided to call |
 | `tool_result` | `name`, `summary` (≤200 chars), `truncated` |
 | `error` | `code` (`tool_failed` / `llm_failed` / `rate_limited` / `invalid_input`), `message` |
 | `done` | `usage` (`input_tokens`, `output_tokens`, `cost_usd`, `latency_ms`), `prompt_version`, `tool_calls` |
@@ -490,7 +479,7 @@ The assistant has four tools: `list_devices`, `query_readings`, `aggregate_windo
 
 | Method | Endpoint | Auth | Description |
 |:-------|:---------|:-----|:------------|
-| GET | `/health` | No | Liveness probe — `{"status": "ok"}` |
+| GET | `/health` | No | Liveness probe,  `{"status": "ok"}` |
 
 ---
 
@@ -501,34 +490,9 @@ Built and tested; not yet started where noted.
 - [x] Async data layer, TimescaleDB hypertable, hand-written initial migration
 - [x] JWT auth with argon2id, timing-safe login, tenant isolation
 - [x] Device CRUD and the five readings endpoints
-- [x] React dashboard — fleet overview, device detail, charts
+- [x] React dashboard,  fleet overview, device detail, charts
 - [x] AI operator's assistant and `POST /chat/stream`
-- [ ] **Frontend chat drawer** — a persistent assistant panel on the dashboard and device detail pages (`SPEC.md` § Frontend § Scope)
-- [ ] **Agent eval suite** — 30 labeled cases in `evals/cases.yaml` with a pytest runner (`evals/` is currently a placeholder)
-- [ ] **Sensor simulator** — APScheduler-driven synthetic telemetry with reproducible seeding (`docs/SIMULATOR.md` is currently a placeholder)
+- [ ] **Frontend chat drawer**,  a persistent assistant panel on the dashboard and device detail pages (`SPEC.md` § Frontend § Scope)
+- [ ] **Agent eval suite**,  30 labeled cases in `evals/cases.yaml` with a pytest runner (`evals/` is currently a placeholder)
+- [ ] **Sensor simulator**,  APScheduler-driven synthetic telemetry with reproducible seeding (`docs/SIMULATOR.md` is currently a placeholder)
 - [ ] Hosted demo deployment
-
----
-
-## Contributing
-
-1. Read `/docs/SPEC.md` first — it is the contract for endpoints, models, and tools. If the API surface changes, update the spec in the same change.
-2. Branch per task: `feat/...`, `fix/...`, `chore/...`, `docs/...`.
-3. Write or update tests in the same change set as the code. Every new feature ships with its tests.
-4. Run the full gate set locally before opening a PR:
-
-```bash
-cd backend && ruff check . && ruff format --check . && mypy app tests && pytest
-cd frontend && npm run lint && npm run format:check && npm run typecheck && npm test
-```
-
-5. Commit messages lead with an imperative verb: "Add JWT middleware", not "auth stuff".
-6. Open a pull request against `main`. CI must be green; squash on merge.
-
-`/CLAUDE.md` documents the conventions in force — typed SQLAlchemy 2.0 syntax, `mypy --strict`, no `Any` or `# type: ignore` without an explanatory comment, design tokens instead of inline styles, and no secrets in the repo.
-
----
-
-## License
-
-Not yet licensed. No `LICENSE` file has been added, which by default reserves all rights — anyone may view the source, but reuse is not granted. An OSI license such as MIT would need to be added explicitly.
