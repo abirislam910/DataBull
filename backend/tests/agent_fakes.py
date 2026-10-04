@@ -158,6 +158,7 @@ class FakeLLMClient:
         system: str,
         messages: Sequence[dict[str, Any]],
         tools: Sequence[dict[str, Any]],
+        now: datetime | None = None,
     ) -> AsyncIterator[LLMEvent]:
         self.requests.append([dict(m) for m in messages])
         step = self._script[self.turns] if self.turns < len(self._script) else ""
@@ -199,6 +200,7 @@ class FailingLLMClient:
         system: str,
         messages: Sequence[dict[str, Any]],
         tools: Sequence[dict[str, Any]],
+        now: datetime | None = None,
     ) -> AsyncIterator[LLMEvent]:
         raise self._exc
         yield TextChunk(text="")  # pragma: no cover - makes this an async generator

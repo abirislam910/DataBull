@@ -29,7 +29,7 @@ from app.agent.llm_client import TextChunk, TurnComplete, estimate_cost_usd
 from app.agent.prompt import DEFAULT_PROMPT_VERSION, get_prompt
 from app.agent.services import AgentServices
 from app.agent.tool_schemas import TOOL_SCHEMAS
-from app.agent.tools import ToolContext, execute_tool
+from app.agent.tools import ToolContext, ToolOutcome, execute_tool
 from app.core.config import get_settings
 
 
@@ -62,6 +62,7 @@ async def run_agent(
     system = get_prompt(prompt_version)
 
     settings = get_settings()
+    now = services.now()
     started = time.monotonic()
     context = ToolContext(user_id=user_id, services=services)
 
@@ -85,105 +86,113 @@ async def run_agent(
             tool_calls=tool_calls_made,
         )
 
+    deadline = started + settings.agent_turn_timeout_seconds
+
     try:
-        # The whole turn is bounded, not just each call: a model that keeps
-        # asking for one more tool would otherwise hold the SSE connection
-        # open indefinitely.
-        async with asyncio.timeout(settings.agent_turn_timeout_seconds):
-            while True:
-                turn: TurnComplete | None = None
-
-                async for event in services.llm.stream_turn(
-                    system=system,
-                    messages=conversation,
-                    tools=TOOL_SCHEMAS,
-                ):
-                    if isinstance(event, TextChunk):
-                        if event.text:
-                            yield TextDelta(delta=event.text)
-                    else:
-                        turn = event
-
-                if turn is None:
-                    yield Error(
-                        code="llm_failed",
-                        message="The model returned no response.",
-                    )
-                    break
-
-                input_tokens += turn.input_tokens
-                output_tokens += turn.output_tokens
-
-                if not turn.tool_calls:
-                    break
-
-                # Budget check before executing, so the cap is a real ceiling on
-                # work done rather than on work already paid for.
-                if (
-                    tool_calls_made + len(turn.tool_calls)
-                    > settings.agent_max_tool_calls
-                ):
-                    yield Error(
-                        code="tool_failed",
-                        message=(
-                            "Reached the limit of "
-                            f"{settings.agent_max_tool_calls} tool calls for one turn."
-                        ),
-                    )
-                    break
-
-                # Echo the assistant turn back verbatim — text first, then the
-                # tool_use blocks. Dropping the text would lose any reasoning
-                # the model wrote before deciding to call a tool.
-                assistant_content: list[dict[str, Any]] = []
-                if turn.text:
-                    assistant_content.append({"type": "text", "text": turn.text})
-                assistant_content.extend(
-                    {
-                        "type": "tool_use",
-                        "id": call.id,
-                        "name": call.name,
-                        "input": call.input,
-                    }
-                    for call in turn.tool_calls
+        while True:
+            if time.monotonic() > deadline:
+                yield Error(
+                    code="llm_failed",
+                    message=(
+                        f"The assistant took longer than "
+                        f"{settings.agent_turn_timeout_seconds:.0f}s and was stopped."
+                    ),
                 )
-                conversation.append({"role": "assistant", "content": assistant_content})
+                break
+            turn: TurnComplete | None = None
 
-                # Parallel tool calls must come back as tool_result blocks in a
-                # SINGLE user message; splitting them teaches the model to stop
-                # calling tools in parallel.
-                results: list[dict[str, Any]] = []
-                for call in turn.tool_calls:
-                    tool_calls_made += 1
-                    yield ToolUse(name=call.name, input=call.input)
+            async for event in services.llm.stream_turn(
+                system=system,
+                messages=conversation,
+                tools=TOOL_SCHEMAS,
+                now=now
+            ):
+                if isinstance(event, TextChunk):
+                    if event.text:
+                        yield TextDelta(delta=event.text)
+                else:
+                    turn = event
 
-                    outcome = await execute_tool(context, call.name, call.input)
-                    yield ToolResult(
-                        name=call.name,
-                        summary=outcome.summary,
-                        truncated=outcome.truncated,
+            if turn is None:
+                yield Error(
+                    code="llm_failed",
+                    message="The model returned no response.",
+                )
+                break
+
+            input_tokens += turn.input_tokens
+            output_tokens += turn.output_tokens
+
+            if not turn.tool_calls:
+                break
+
+            # Budget check before executing, so the cap is a real ceiling on
+            # work done rather than on work already paid for.
+            if tool_calls_made + len(turn.tool_calls) > settings.agent_max_tool_calls:
+                yield Error(
+                    code="tool_failed",
+                    message=(
+                        "Reached the limit of "
+                        f"{settings.agent_max_tool_calls} tool calls for one turn."
+                    ),
+                )
+                break
+
+            # Echo the assistant turn back verbatim — text first, then the
+            # tool_use blocks. Dropping the text would lose any reasoning
+            # the model wrote before deciding to call a tool.
+            assistant_content: list[dict[str, Any]] = []
+            if turn.text:
+                assistant_content.append({"type": "text", "text": turn.text})
+            assistant_content.extend(
+                {
+                    "type": "tool_use",
+                    "id": call.id,
+                    "name": call.name,
+                    "input": call.input,
+                }
+                for call in turn.tool_calls
+            )
+            conversation.append({"role": "assistant", "content": assistant_content})
+
+            # Parallel tool calls must come back as tool_result blocks in a
+            # SINGLE user message; splitting them teaches the model to stop
+            # calling tools in parallel.
+            results: list[dict[str, Any]] = []
+            for call in turn.tool_calls:
+                tool_calls_made += 1
+                yield ToolUse(name=call.name, input=call.input)
+
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    outcome = ToolOutcome(
+                        payload=f"{call.name} was not run: the turn ran out of time.",
+                        summary=f"{call.name}: out of time",
+                        failed=True,
                     )
-                    results.append(
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": call.id,
-                            "content": outcome.payload,
-                            # Flagging the failure lets the model recover rather
-                            # than treat the error text as data.
-                            "is_error": outcome.failed,
-                        }
-                    )
+                else:
+                    try:
+                        async with asyncio.timeout(remaining):   # no yield inside — safe
+                            outcome = await execute_tool(context, call.name, call.input)
+                    except TimeoutError:
+                        outcome = ToolOutcome(
+                            payload=f"{call.name} timed out.",
+                            summary=f"{call.name}: timed out",
+                            failed=True,
+                        )
 
-                conversation.append({"role": "user", "content": results})
+                yield ToolResult(name=call.name, summary=outcome.summary, truncated=outcome.truncated)
+                results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": call.id,
+                        "content": outcome.payload,
+                        "is_error": outcome.failed,
+                    }
+                )
 
-    except TimeoutError:
-        yield Error(
-            code="llm_failed",
-            message=(
-                f"The assistant took longer than "
-                f"{settings.agent_turn_timeout_seconds:.0f}s and was stopped."
-            ),
-        )
+            conversation.append({"role": "user", "content": results})
+
     except Exception as exc:  # noqa: BLE001 - the contract is "never raise"
         # SPEC: "Never raises for LLM or tool errors — those become error
         # AgentEvents." Rate limiting is called out separately because a client

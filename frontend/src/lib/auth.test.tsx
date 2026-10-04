@@ -136,7 +136,11 @@ describe('AuthProvider', () => {
 
   it('registers logout as the unauthorized handler', async () => {
     stubSuccessfulLogin()
-    render(<AuthProvider><Probe /></AuthProvider>)
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
 
     await userEvent.click(screen.getByText('login'))
     await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('in'))
@@ -144,5 +148,5 @@ describe('AuthProvider', () => {
     notifyUnauthorized()
 
     await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('out'))
-})
+  })
 })
