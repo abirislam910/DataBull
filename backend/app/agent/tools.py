@@ -20,10 +20,12 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 from app.agent.services import AgentServices
 from app.schemas.reading import AggregateFn, AggregateWindow
 
+from app.core.config import get_settings
+
 # Cap on how much of a tool's output is fed back to the model, from
 # SPEC § Tool policy. Enforced on the serialized JSON, because that is what
 # actually costs tokens.
-DEFAULT_MAX_RESULT_BYTES = 2048
+DEFAULT_MAX_RESULT_BYTES = get_settings().agent_tool_result_max_bytes
 
 # Ceiling on rows a single tool call may pull back. The model cannot raise it;
 # without one, "show me everything" turns into a hypertable scan serialized
@@ -175,7 +177,12 @@ async def aggregate_window(ctx: ToolContext, raw: dict[str, Any]) -> ToolOutcome
         for bucket in buckets
     ]
     payload, truncated = _serialize(rows, DEFAULT_MAX_RESULT_BYTES)
-    summary = f"{len(buckets)} {args.window.value} bucket(s), {args.fn.value}"
+    summary = (
+        f"{len(buckets)} {args.window.value} bucket(s), {args.fn.value}"
+        if buckets
+        else f"No {args.window.value} buckets between {args.start.isoformat()} "
+        f"and {args.end.isoformat()}"
+    )
     return ToolOutcome(payload=payload, summary=summary[:200], truncated=truncated)
 
 

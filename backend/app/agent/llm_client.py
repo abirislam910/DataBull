@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Final, Protocol, cast
 
 from app.core.config import get_settings
@@ -90,6 +91,7 @@ class LLMClient(Protocol):
         # sync with the SDK for no checking benefit.
         messages: Sequence[dict[str, Any]],
         tools: Sequence[dict[str, Any]],
+        now: datetime
     ) -> AsyncIterator[LLMEvent]: ...
 
 
@@ -133,14 +135,11 @@ class AnthropicLLMClient:
         system: str,
         messages: Sequence[dict[str, Any]],
         tools: Sequence[dict[str, Any]],
+        now: datetime,
     ) -> AsyncIterator[LLMEvent]:
         async with self._client.messages.stream(
             model=self._model,
             max_tokens=self._settings.agent_max_tokens,
-            # `effort` rather than `temperature`: sampling parameters are
-            # rejected by current-generation models. Low effort suits four
-            # narrow tools and a three-sentence answer budget.
-            #
             # The three casts below are the SDK boundary. Our protocol carries
             # plain dicts so the test fakes stay trivial; the SDK types them as
             # TypedDicts, which a `dict[str, Any]` can never structurally
@@ -156,7 +155,11 @@ class AnthropicLLMClient:
                     # turn, so caching the prefix makes each follow-up in a
                     # conversation markedly cheaper.
                     "cache_control": {"type": "ephemeral"},
-                }
+                }, 
+                {
+                    "type": "text",
+                    "text": f"The current time is {now.isoformat()}.",
+                },
             ],
             tools=cast("list[ToolUnionParam]", list(tools)),
             messages=cast("list[MessageParam]", list(messages)),
