@@ -29,10 +29,15 @@ export const queryKeys = {
   device: (id: string) => ['devices', id] as const,
   readings: (deviceId: string, start?: string, end?: string, limit?: number) =>
     ['readings', deviceId, start ?? null, end ?? null, limit ?? null] as const,
-  aggregate: (deviceId: string, window: AggregateWindow, fn: AggregateFn, start?: string) =>
-    ['readings', 'aggregate', deviceId, window, fn, start ?? null] as const,
-  alerts: (since: string, deviceId?: string) =>
-    ['readings', 'alerts', since, deviceId ?? null] as const,
+  aggregate: (
+    deviceId: string,
+    window: AggregateWindow,
+    fn: AggregateFn,
+    start?: string,
+    end?: string,
+  ) => ['readings', 'aggregate', deviceId, window, fn, start ?? null, end ?? null] as const,
+  alerts: (since: string, deviceId?: string, limit?: number) =>
+    ['readings', 'alerts', since, deviceId ?? null, limit ?? null] as const,
 }
 
 /**
@@ -98,12 +103,13 @@ export function useAggregate(
   window: AggregateWindow,
   fn: AggregateFn,
   start?: string,
+  end?: string,
 ): UseQueryResult<AggregateBucket[], Error> {
   return useQuery({
-    queryKey: queryKeys.aggregate(deviceId, window, fn, start),
+    queryKey: queryKeys.aggregate(deviceId, window, fn, start, end),
     queryFn: () =>
       apiFetch<AggregateBucket[]>('/readings/aggregate', {
-        params: { device_id: deviceId, window, fn, start },
+        params: { device_id: deviceId, window, fn, start, end },
       }),
     enabled: hasDeviceId(deviceId),
     refetchInterval: POLL_INTERVAL_MS,
@@ -111,12 +117,16 @@ export function useAggregate(
   })
 }
 
-export function useAlerts(since: string, deviceId?: string): UseQueryResult<Alert[], Error> {
+export function useAlerts(
+  since: string,
+  deviceId?: string,
+  limit?: number,
+): UseQueryResult<Alert[], Error> {
   return useQuery({
     queryKey: queryKeys.alerts(since, deviceId),
     queryFn: () =>
       apiFetch<Alert[]>('/readings/alerts', {
-        params: { since, device_id: deviceId },
+        params: { since, device_id: deviceId, limit },
       }),
     refetchInterval: POLL_INTERVAL_MS,
     retry: retryUnlessUnauthorized,
@@ -149,7 +159,9 @@ export function useDeleteDevice(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (deviceId: string) => apiFetch<void>(`/devices/${deviceId}`, { method: 'DELETE' }),
-    onSuccess: () => {
+    onSuccess: (_data, deviceId) => {
+      queryClient.removeQueries({ queryKey: queryKeys.device(deviceId) })
+      queryClient.removeQueries({ queryKey: ['readings', deviceId] })
       void queryClient.invalidateQueries({ queryKey: queryKeys.devices })
     },
   })
