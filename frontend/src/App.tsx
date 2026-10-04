@@ -1,8 +1,9 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom'
+import { ApiError } from '@/lib/api'
 import { AppShell } from '@/components/AppShell'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
-import { AuthProvider } from '@/lib/auth'
+import { AuthProvider, notifyUnauthorized, setCacheClearer } from '@/lib/auth'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { DeviceDetailPage } from '@/pages/DeviceDetailPage'
 import { DevicesPage } from '@/pages/DevicesPage'
@@ -10,6 +11,16 @@ import { LoginPage } from '@/pages/LoginPage'
 import { SignupPage } from '@/pages/SignupPage'
 
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      if (error instanceof ApiError && error.isUnauthorized) notifyUnauthorized()
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      if (error instanceof ApiError && error.isUnauthorized) notifyUnauthorized()
+    },
+  }),
   defaultOptions: {
     queries: {
       // Telemetry ages fast; a stale window longer than the poll interval would
@@ -19,6 +30,8 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+setCacheClearer(() => queryClient.clear())
 
 export function App(): JSX.Element {
   return (

@@ -5,7 +5,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AuthProvider, useAuth } from './auth'
+import { AuthProvider, useAuth, notifyUnauthorized } from './auth'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
