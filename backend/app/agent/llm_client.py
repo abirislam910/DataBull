@@ -91,7 +91,7 @@ class LLMClient(Protocol):
         # sync with the SDK for no checking benefit.
         messages: Sequence[dict[str, Any]],
         tools: Sequence[dict[str, Any]],
-        now: datetime
+        now: datetime,
     ) -> AsyncIterator[LLMEvent]: ...
 
 
@@ -155,7 +155,7 @@ class AnthropicLLMClient:
                     # turn, so caching the prefix makes each follow-up in a
                     # conversation markedly cheaper.
                     "cache_control": {"type": "ephemeral"},
-                }, 
+                },
                 {
                     "type": "text",
                     "text": f"The current time is {now.isoformat()}.",

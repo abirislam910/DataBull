@@ -102,10 +102,7 @@ async def run_agent(
             turn: TurnComplete | None = None
 
             async for event in services.llm.stream_turn(
-                system=system,
-                messages=conversation,
-                tools=TOOL_SCHEMAS,
-                now=now
+                system=system, messages=conversation, tools=TOOL_SCHEMAS, now=now
             ):
                 if isinstance(event, TextChunk):
                     if event.text:
@@ -172,7 +169,7 @@ async def run_agent(
                     )
                 else:
                     try:
-                        async with asyncio.timeout(remaining):   # no yield inside — safe
+                        async with asyncio.timeout(remaining):  # no yield inside — safe
                             outcome = await execute_tool(context, call.name, call.input)
                     except TimeoutError:
                         outcome = ToolOutcome(
@@ -181,7 +178,9 @@ async def run_agent(
                             failed=True,
                         )
 
-                yield ToolResult(name=call.name, summary=outcome.summary, truncated=outcome.truncated)
+                yield ToolResult(
+                    name=call.name, summary=outcome.summary, truncated=outcome.truncated
+                )
                 results.append(
                     {
                         "type": "tool_result",
