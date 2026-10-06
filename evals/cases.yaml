@@ -1,6 +1,414 @@
 # Agent eval cases — see /docs/SPEC.md "Eval plan".
-# 30 labeled cases total:
-#   12 simple recall, 8 aggregation, 5 multi-step, 3 alert-aware, 2 should-decline.
-# Each case: user question, expected tool-call sequence (names + arg patterns),
-# and a rubric of keywords the final answer must contain.
-cases: []
+#
+# 30 labeled cases:
+#   12 simple_recall · 8 aggregation · 5 multi_step · 3 alert_aware · 2 should_decline
+#
+# Each case declares the user question, the expected tool-call sequence (names
+# plus argument *patterns*, never exact values), and a keyword rubric for the
+# final answer.
+#
+# Why nearly every sequence opens with `list_devices`: the other three tools take
+# a `device_id` UUID, and the only place the model can obtain one is
+# `list_devices`. That is a property of the tool surface, not an accident of
+# phrasing, so the expected sequences reflect it.
+#
+# Argument patterns:
+#   "*"              present, any value
+#   "device:Pump-3"  the fixture UUID for that device
+#   "re:^2026-02"    regex against str(value)
+#   "1h"             case-insensitive equality
+#
+# match:
+#   exact    (default) the sequence is exactly this, in this order
+#   ordered  these appear in this relative order; extra calls allowed
+#   set      same multiset of names, any order
+#
+# The fleet is defined in fixtures.py: Furnace-1 and Furnace-2 (temperature, °C),
+# Pump-3 and Pump-4 (pressure, bar), Inlet-Flow-1 (flow, L/min). "Now" is pinned
+# to 2026-03-01T12:00Z with seven days of history behind it.
+
+version: 1
+
+cases:
+  # ---------------------------------------------------------------- simple recall
+  - id: recall-list-devices
+    category: simple_recall
+    question: What devices am I monitoring?
+    expect_tools:
+      - name: list_devices
+    rubric:
+      must_include: [Furnace-1, Pump-3, Inlet-Flow-1]
+
+  - id: recall-device-count
+    category: simple_recall
+    question: How many sensors do I have in total?
+    expect_tools:
+      - name: list_devices
+    rubric:
+      must_include_any: ["5", five]
+
+  - id: recall-device-types
+    category: simple_recall
+    question: What kinds of sensors are on my fleet?
+    expect_tools:
+      - name: list_devices
+    rubric:
+      must_include: [temperature, pressure, flow]
+
+  - id: recall-flow-unit
+    category: simple_recall
+    question: What unit does Inlet-Flow-1 report in?
+    expect_tools:
+      - name: list_devices
+    rubric:
+      must_include: [Inlet-Flow-1, L/min]
+
+  - id: recall-thresholds-pump3
+    category: simple_recall
+    question: What are the alarm limits on Pump-3?
+    expect_tools:
+      - name: list_devices
+    rubric:
+      must_include: [Pump-3]
+      must_include_any: ["8", bar]
+
+  - id: recall-latest-pump3
+    category: simple_recall
+    question: What is the most recent pressure reading on Pump-3?
+    expect_tools:
+      - name: list_devices
+      - name: query_readings
+        args:
+          device_id: device:Pump-3
+          start: "*"
+          end: "*"
+    rubric:
+      must_include: [Pump-3]
+      must_include_any: [bar]
+
+  - id: recall-furnace1-recent
+    category: simple_recall
+    question: Show me the recent readings for Furnace-1.
+    expect_tools:
+      - name: list_devices
+      - name: query_readings
+        args:
+          device_id: device:Furnace-1
+    rubric:
+      must_include: [Furnace-1]
+      must_include_any: ["°C", degrees]
+
+  - id: recall-furnace2-yesterday
+    category: simple_recall
+    question: What did Furnace-2 read yesterday?
+    expect_tools:
+      - name: list_devices
+      - name: query_readings
+        args:
+          device_id: device:Furnace-2
+          start: "re:2026-02-28"
+    rubric:
+      must_include: [Furnace-2]
+
+  - id: recall-pump4-last-hour
+    category: simple_recall
+    question: Give me Pump-4 readings from the last hour.
+    expect_tools:
+      - name: list_devices
+      - name: query_readings
+        args:
+          device_id: device:Pump-4
+          start: "re:2026-03-01T11"
+          end: "*"
+    rubric:
+      must_include: [Pump-4]
+
+  - id: recall-flow-today
+    category: simple_recall
+    question: Show me today's flow readings.
+    expect_tools:
+      - name: list_devices
+      - name: query_readings
+        args:
+          device_id: device:Inlet-Flow-1
+          start: "re:2026-03-01"
+    rubric:
+      must_include: [Inlet-Flow-1]
+
+  - id: recall-furnace1-morning
+    category: simple_recall
+    question: What was Furnace-1 reading around 06:00 this morning?
+    expect_tools:
+      - name: list_devices
+      - name: query_readings
+        args:
+          device_id: device:Furnace-1
+          start: "re:2026-03-01"
+    rubric:
+      must_include: [Furnace-1]
+      must_include_any: ["06:00", 6am, "6 am", morning]
+
+  - id: recall-unknown-device
+    category: simple_recall
+    question: Show me the readings for Compressor-9.
+    # The device does not exist. The model should look, find nothing, and say so
+    # rather than inventing a UUID or a series.
+    match: ordered
+    max_tools: 2
+    expect_tools:
+      - name: list_devices
+    rubric:
+      must_include_any: [not found, no device, "don't have", does not exist, "doesn't exist", no such]
+      must_not_include: ["Compressor-9 is reading", "Compressor-9 averaged"]
+
+  # ------------------------------------------------------------------ aggregation
+  - id: agg-pump3-avg-today
+    category: aggregation
+    question: What is the average pressure on Pump-3 today?
+    expect_tools:
+      - name: list_devices
+      - name: aggregate_window
+        args:
+          device_id: device:Pump-3
+          fn: avg
+          start: "re:2026-03-01"
+          end: "*"
+    rubric:
+      must_include: [Pump-3]
+      must_include_any: [bar, average]
+
+  - id: agg-furnace1-max-24h
+    category: aggregation
+    question: What was the peak temperature on Furnace-1 in the last 24 hours?
+    expect_tools:
+      - name: list_devices
+      - name: aggregate_window
+        args:
+          device_id: device:Furnace-1
+          fn: max
+          start: "re:2026-02-28|2026-03-01"
+    rubric:
+      must_include: [Furnace-1]
+      must_include_any: ["°C", peak, maximum, highest]
+
+  - id: agg-furnace2-min-week
+    category: aggregation
+    question: What was the lowest Furnace-2 reading this week?
+    expect_tools:
+      - name: list_devices
+      - name: aggregate_window
+        args:
+          device_id: device:Furnace-2
+          fn: min
+    rubric:
+      must_include: [Furnace-2]
+      must_include_any: [lowest, minimum, "min"]
+
+  - id: agg-pump4-p95-day
+    category: aggregation
+    question: Give me the 95th percentile pressure for Pump-4 over the last day.
+    expect_tools:
+      - name: list_devices
+      - name: aggregate_window
+        args:
+          device_id: device:Pump-4
+          fn: p95
+    rubric:
+      must_include: [Pump-4]
+      must_include_any: ["95", percentile]
+
+  - id: agg-flow-daily-week
+    category: aggregation
+    question: What is the daily average flow for the past week?
+    expect_tools:
+      - name: list_devices
+      - name: aggregate_window
+        args:
+          device_id: device:Inlet-Flow-1
+          window: 1d
+          fn: avg
+    rubric:
+      must_include: [Inlet-Flow-1]
+      must_include_any: [L/min, daily, average]
+
+  - id: agg-pump3-hourly-6h
+    category: aggregation
+    question: Show hourly averages for Pump-3 over the last six hours.
+    expect_tools:
+      - name: list_devices
+      - name: aggregate_window
+        args:
+          device_id: device:Pump-3
+          window: 1h
+          fn: avg
+    rubric:
+      must_include: [Pump-3]
+      must_include_any: [hourly, "hour"]
+
+  - id: agg-furnace1-avg-week
+    category: aggregation
+    question: What is the average Furnace-1 temperature this week?
+    expect_tools:
+      - name: list_devices
+      - name: aggregate_window
+        args:
+          device_id: device:Furnace-1
+          fn: avg
+    rubric:
+      must_include: [Furnace-1]
+      must_include_any: [average, "°C"]
+
+  - id: agg-flow-weekly-rollup
+    category: aggregation
+    question: Give me a weekly rollup of Inlet-Flow-1.
+    match: ordered
+    expect_tools:
+      - name: list_devices
+      - name: aggregate_window
+        args:
+          device_id: device:Inlet-Flow-1
+    rubric:
+      must_include: [Inlet-Flow-1]
+      must_include_any: [L/min, week]
+
+  # -------------------------------------------------------------------- multi-step
+  - id: multi-compare-furnaces
+    category: multi_step
+    question: Compare Furnace-1 and Furnace-2 over the last hour.
+    match: ordered
+    expect_tools:
+      - name: list_devices
+      - name: aggregate_window
+        args:
+          device_id: device:Furnace-1
+      - name: aggregate_window
+        args:
+          device_id: device:Furnace-2
+    rubric:
+      must_include: [Furnace-1, Furnace-2]
+
+  - id: multi-compare-pumps
+    category: multi_step
+    question: Which pump ran at higher pressure today, Pump-3 or Pump-4?
+    match: ordered
+    expect_tools:
+      - name: list_devices
+      - name: aggregate_window
+        args:
+          device_id: device:Pump-3
+      - name: aggregate_window
+        args:
+          device_id: device:Pump-4
+    rubric:
+      must_include: [Pump-3, Pump-4]
+      must_include_any: [bar, higher]
+
+  - id: multi-alerts-then-detail
+    category: multi_step
+    question: Have there been any problems today, and if so show me the readings behind them?
+    match: ordered
+    expect_tools:
+      - name: get_recent_alerts
+        args:
+          since: "*"
+      - name: query_readings
+        args:
+          device_id: "*"
+    rubric:
+      must_include_any: [Pump-3, Furnace-2]
+
+  - id: multi-furnace1-trend
+    category: multi_step
+    question: Has Furnace-1 trended up or down over the past three days?
+    match: ordered
+    expect_tools:
+      - name: list_devices
+      - name: aggregate_window
+        args:
+          device_id: device:Furnace-1
+          window: 1d
+    rubric:
+      must_include: [Furnace-1]
+      must_include_any: [up, down, trend, stable, flat]
+
+  - id: multi-fleet-overview
+    category: multi_step
+    question: Give me a status overview of everything I monitor.
+    match: ordered
+    expect_tools:
+      - name: list_devices
+    rubric:
+      must_include_any: [Furnace-1, Pump-3]
+
+  # ------------------------------------------------------------------ alert-aware
+  - id: alert-last-24h
+    category: alert_aware
+    question: Any issues with my devices in the last 24 hours?
+    match: ordered
+    expect_tools:
+      - name: get_recent_alerts
+        args:
+          since: "re:2026-02-28|2026-03-01"
+    rubric:
+      must_include_any: [Pump-3, Furnace-2]
+
+  - id: alert-pump3-only
+    category: alert_aware
+    question: Has Pump-3 breached its limits recently?
+    match: ordered
+    expect_tools:
+      - name: list_devices
+      - name: get_recent_alerts
+        args:
+          device_id: device:Pump-3
+    rubric:
+      must_include: [Pump-3]
+
+  - id: alert-none-recent
+    category: alert_aware
+    question: Were there any alarms in the last ten minutes?
+    match: ordered
+    expect_tools:
+      - name: get_recent_alerts
+        args:
+          since: "re:2026-03-01T11:5|2026-03-01T12"
+    rubric:
+      must_include_any: [no alarms, no alerts, none, no issues, nothing]
+
+  # --------------------------------------------------------------- should decline
+  - id: decline-predict-failures
+    category: should_decline
+    question: Predict which of my devices will fail next week.
+    match: ordered
+    max_tools: 3
+    expect_tools: []
+    rubric:
+      must_include_any:
+        - "can't predict"
+        - cannot predict
+        - "can't forecast"
+        - cannot forecast
+        - unable to predict
+        - no way to predict
+        - "don't have"
+        - not able to
+      must_not_include: [will fail on, guaranteed to fail, will definitely fail]
+
+  - id: decline-root-cause
+    category: should_decline
+    question: Why did Pump-3 go over its limit? What is the root cause?
+    match: ordered
+    max_tools: 4
+    expect_tools: []
+    rubric:
+      must_include_any:
+        - "can't determine"
+        - cannot determine
+        - "can't say"
+        - cannot say
+        - "don't have"
+        - not enough
+        - unable to
+        - only shows
+        - would need
+      must_not_include: [the root cause is, caused by a failed, definitely because]
