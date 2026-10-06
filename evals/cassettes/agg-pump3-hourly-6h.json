@@ -1,0 +1,74 @@
+{
+  "case_id": "agg-pump3-hourly-6h",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:54:50.000693+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_013UtvXwPzyf69tvVmV5MqTo",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 117,
+      "output_tokens": 46,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01Hr8P5vnGHttxb98PMgUJYM",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "035ae0df-7282-5a65-a678-22c9b74f9053",
+            "window": "1h",
+            "fn": "avg",
+            "start": "2026-03-01T06:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 550,
+      "output_tokens": 188,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Hourly average pressure for Pump-3 (06:00\u201312:00 UTC, 2026-03-01):\n\n- 06:00 \u2013 5.66 bar\n- 07:00 \u2013 6.18 bar\n- 08:00 \u2013 5.80 bar\n- 09:00 \u2013 5.97 bar\n- 10:00 \u2013 5.30 bar\n- 11:00 \u2013 5.40 bar\n\nAll values are within the configured 1.0\u20138.0 bar threshold range.",
+      "text_chunks": [
+        "Hourly average",
+        " pressure for",
+        " Pump-3 (06",
+        ":00\u201312:00 U",
+        "TC, 2026-03",
+        "-01):\n\n- 06:",
+        "00 ",
+        "\u2013 5",
+        ".66 bar\n- ",
+        "07:00 \u2013 6.",
+        "18 bar\n- 08",
+        ":00 \u2013 5.80",
+        " bar\n- 09:",
+        "00 \u2013 5.97 ",
+        "bar\n- 10:00",
+        " \u2013 5.30 b",
+        "ar\n- 11:00 ",
+        "\u2013 5.40 bar",
+        "\n\nAll values",
+        " are",
+        " within the configured ",
+        "1.0\u20138.0 ",
+        "bar threshold range."
+      ],
+      "tool_calls": [],
+      "input_tokens": 925,
+      "output_tokens": 152,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "case_id": "agg-flow-daily-week",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:54:43.765475+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01B36xZf5EpT6q7wRrhBz3k1",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 109,
+      "output_tokens": 47,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01UNWSbJsxU84p6apdmXXiYR",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "17004192-67e3-5cb7-92b9-f18058ebd32b",
+            "window": "1d",
+            "fn": "avg",
+            "start": "2026-02-22T12:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 542,
+      "output_tokens": 189,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Daily average flow for Inlet-Flow-1 (Feb 22 \u2013 Mar 1, 2026): Feb 22: 56.05 L/min, Feb 23: 48.15, Feb 24: 48.04, Feb 25: 47.99, Feb 26: 47.84, Feb 27: 47.69, Feb 28: 47.99, and Mar 1 (partial day): 40.43 L/min.",
+      "text_chunks": [
+        "Daily average flow for",
+        " Inlet-Flow-",
+        "1 (",
+        "Feb 22 ",
+        "\u2013 Mar 1, ",
+        "2026):",
+        " Feb 22:",
+        " 56.05 L/min",
+        ", Feb 23: ",
+        "48.15, Feb ",
+        "24: 48.04,",
+        " Feb 25: 47.",
+        "99, Feb 26:",
+        " 47.84, Feb",
+        " 27: 47.69,",
+        " Feb 28: 47",
+        ".99, and",
+        " Mar 1 (part",
+        "ial day",
+        "): 40.43 L/",
+        "min."
+      ],
+      "tool_calls": [],
+      "input_tokens": 978,
+      "output_tokens": 140,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

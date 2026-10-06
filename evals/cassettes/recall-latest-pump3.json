@@ -1,0 +1,60 @@
+{
+  "case_id": "recall-latest-pump3",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:53:34.794758+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_014X9n7UERmmfPi8AyoLrFPN",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 114,
+      "output_tokens": 27,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01XDVyyV4SA8Tk65caqdGNxX",
+          "name": "query_readings",
+          "input": {
+            "device_id": "035ae0df-7282-5a65-a678-22c9b74f9053",
+            "start": "2026-03-01T06:00:00Z",
+            "end": "2026-03-01T12:00:00Z",
+            "limit": 1
+          }
+        }
+      ],
+      "input_tokens": 547,
+      "output_tokens": 163,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "The most recent pressure reading on Pump-3 was **8.11 bar** at 2026-03-01 11:45 UTC. Note this is above its configured max threshold of 8.0 bar.",
+      "text_chunks": [
+        "The most recent pressure re",
+        "ading on Pump-3 ",
+        "was **8.11 bar",
+        "** at 2026-03-",
+        "01 ",
+        "11:45 UTC.",
+        " Note this is above its",
+        " configured max threshold of ",
+        "8.",
+        "0 bar."
+      ],
+      "tool_calls": [],
+      "input_tokens": 745,
+      "output_tokens": 65,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

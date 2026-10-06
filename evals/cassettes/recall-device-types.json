@@ -1,0 +1,46 @@
+{
+  "case_id": "recall-device-types",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:53:24.911097+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01RuzpmmZkNJkLVDgfwf6eo1",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 111,
+      "output_tokens": 27,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Your fleet has 5 sensors across 3 types: two temperature sensors (Furnace-1, Furnace-2, measured in \u00b0C), two pressure sensors (Pump-3, Pump-4, in bar), and one flow sensor (Inlet-Flow-1, in L/min).",
+      "text_chunks": [
+        "Your fleet has ",
+        "5 s",
+        "ensors across ",
+        "3 types",
+        ": two",
+        " temperature sensors (",
+        "Furnace-1, Fur",
+        "nace-2, meas",
+        "ured in \u00b0C),",
+        " two pressure sensors (",
+        "Pump-3, P",
+        "ump-4, in bar),",
+        " and one flow sensor (",
+        "Inlet-Flow",
+        "-1, in L/min)."
+      ],
+      "tool_calls": [],
+      "input_tokens": 544,
+      "output_tokens": 96,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

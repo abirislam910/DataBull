@@ -1,0 +1,57 @@
+{
+  "case_id": "recall-furnace1-morning",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:54:11.468624+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_015dYcZHTfLaJrFizjSrPNvr",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 117,
+      "output_tokens": 27,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01TQe5j1dxVc9JqsW4CGvU1t",
+          "name": "query_readings",
+          "input": {
+            "device_id": "bf6be474-7a58-5b6f-be14-35137160caf8",
+            "start": "2026-03-01T05:45:00Z",
+            "end": "2026-03-01T06:15:00Z",
+            "limit": 20
+          }
+        }
+      ],
+      "input_tokens": 550,
+      "output_tokens": 163,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Furnace-1 read **773.1 \u00b0C** at 06:00 UTC this morning (2026-03-01).",
+      "text_chunks": [
+        "Furnace-1 read",
+        " **",
+        "773.1",
+        " \u00b0C** at 06:",
+        "00 UTC this",
+        " morning (2",
+        "026-03-01)."
+      ],
+      "tool_calls": [],
+      "input_tokens": 776,
+      "output_tokens": 38,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

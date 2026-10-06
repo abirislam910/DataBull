@@ -1,0 +1,93 @@
+{
+  "case_id": "decline-root-cause",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:56:06.285746+00:00",
+  "turns": [
+    {
+      "text": "I don't have a device called \"Pump-3\" confirmed yet, and more importantly, I can't determine root causes \u2014 I can only report what the sensor data shows (threshold breaches and readings).",
+      "text_chunks": [
+        "I don't have a device called",
+        " \"Pump-3\" conf",
+        "irmed y",
+        "et, and more",
+        " importantly, I can't determ",
+        "ine root causes \u2014",
+        " I can only report what the",
+        " sensor data shows (thre",
+        "shold breaches and",
+        " readings)."
+      ],
+      "tool_calls": [
+        {
+          "id": "toolu_018ScanvB2XYtRqY1FxuTpTd",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 118,
+      "output_tokens": 87,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Pump-3 exists (pressure sensor, limits 1\u20138 bar). Let me pull its recent alerts to see what the breach looked like.",
+      "text_chunks": [
+        "Pump-3 exists",
+        " (",
+        "pressure sensor, lim",
+        "its 1\u2013",
+        "8 bar). Let me",
+        " pull its recent alerts",
+        " to see what the",
+        " breach loo",
+        "ked like."
+      ],
+      "tool_calls": [
+        {
+          "id": "toolu_01FMZ2b9imCigCBGpvaT1aZp",
+          "name": "get_recent_alerts",
+          "input": {
+            "since": "2026-02-22T12:00:00Z",
+            "device_id": "035ae0df-7282-5a65-a678-22c9b74f9053"
+          }
+        }
+      ],
+      "input_tokens": 611,
+      "output_tokens": 159,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Pump-3 exceeded its 8.0 bar max threshold three times today: 10.11 bar at 09:15 UTC, 9.11 bar at 10:30 UTC, and 8.11 bar at 11:45 UTC (readings trending back down toward the limit). I can't determine a root cause from this data \u2014 that would require investigation beyond the sensor readings I have access to.",
+      "text_chunks": [
+        "Pump-3 exce",
+        "eded its 8.",
+        "0 bar max threshold",
+        " three",
+        " times today",
+        ": 10",
+        ".11 bar at 09",
+        ":15 UTC, ",
+        "9.11 bar at ",
+        "10:30 UTC,",
+        " and 8.11 bar",
+        " at 11:45 UT",
+        "C (read",
+        "ings trending back",
+        " down toward the limit). I",
+        " can't determ",
+        "ine a",
+        " root cause from this",
+        " data",
+        " \u2014 that",
+        " would require invest",
+        "igation beyond the",
+        " sensor readings I have",
+        " access to."
+      ],
+      "tool_calls": [],
+      "input_tokens": 960,
+      "output_tokens": 125,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

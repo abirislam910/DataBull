@@ -17,6 +17,10 @@ build/
 node_modules/
 dist/
 
+# Eval output. Cassettes ARE committed (they are the fixtures CI replays);
+# the metrics report is regenerated on every run.
+evals/results/
+
 # OS
 .DS_Store
 

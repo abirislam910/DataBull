@@ -1,0 +1,148 @@
+{
+  "case_id": "multi-compare-furnaces",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:55:19.056338+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01XfsesfYWZTcyJre65Jd2qt",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 120,
+      "output_tokens": 39,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_011TLUS3CKo9zZ9WyTMivZVa",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "bf6be474-7a58-5b6f-be14-35137160caf8",
+            "window": "1h",
+            "fn": "avg",
+            "start": "2026-03-01T11:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        },
+        {
+          "id": "toolu_01Rj5M6AGFzBEPZs7btTpmZZ",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "bf6be474-7a58-5b6f-be14-35137160caf8",
+            "window": "1h",
+            "fn": "max",
+            "start": "2026-03-01T11:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        },
+        {
+          "id": "toolu_013MUTA8NxVk8KG2Zdy6snTy",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "bf6be474-7a58-5b6f-be14-35137160caf8",
+            "window": "1h",
+            "fn": "min",
+            "start": "2026-03-01T11:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        },
+        {
+          "id": "toolu_01XfGxTRsMocU1J39hzJrpxC",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "40c0ba26-253b-5c3c-964b-e80f7742a81a",
+            "window": "1h",
+            "fn": "avg",
+            "start": "2026-03-01T11:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        },
+        {
+          "id": "toolu_01NyceDmSnqCLwMrr6MawSHA",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "40c0ba26-253b-5c3c-964b-e80f7742a81a",
+            "window": "1h",
+            "fn": "max",
+            "start": "2026-03-01T11:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        },
+        {
+          "id": "toolu_01YLm7eFe44fEVacB1Zjgu7W",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "40c0ba26-253b-5c3c-964b-e80f7742a81a"
+          }
+        }
+      ],
+      "input_tokens": 553,
+      "output_tokens": 1024,
+      "stop_reason": "max_tokens"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01AKNqb5Gu2MkKfs9Dpn4qtD",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "40c0ba26-253b-5c3c-964b-e80f7742a81a",
+            "window": "1h",
+            "fn": "min",
+            "start": "2026-03-01T11:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 1930,
+      "output_tokens": 189,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Over the last hour (11:00\u201312:00 UTC), **Furnace-1** averaged 810.9\u00b0C, ranging 804.3\u2013824.1\u00b0C \u2014 staying well under its 1100\u00b0C threshold. **Furnace-2** averaged 845.4\u00b0C, ranging 746.6\u20131109\u00b0C, and briefly exceeded its 1100\u00b0C max threshold (peak 1109\u00b0C), unlike Furnace-1. Furnace-2 also showed much higher variability than the comparatively stable Furnace-1.",
+      "text_chunks": [
+        "Over the last hour (11:",
+        "00\u201312:00 UT",
+        "C), **",
+        "Furnace-1** aver",
+        "aged 810.9\u00b0C",
+        ", ranging 804.3",
+        "\u2013824.1\u00b0C \u2014",
+        " staying well under",
+        " its 1100\u00b0C thresh",
+        "old. **Furnace-",
+        "2** averaged 845.",
+        "4\u00b0C, ",
+        "ranging 746.6\u20131",
+        "109\u00b0",
+        "C,",
+        " and briefly ex",
+        "ceeded its 1100\u00b0",
+        "C max threshold (pe",
+        "ak 1109\u00b0C), un",
+        "like Furnace-1",
+        ". Furnace-2 ",
+        "also showed much higher variability",
+        " than the",
+        " com",
+        "paratively stable Furn",
+        "ace-1."
+      ],
+      "tool_calls": [],
+      "input_tokens": 2156,
+      "output_tokens": 165,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "case_id": "multi-furnace1-trend",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:55:41.765493+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01VwoF8XYeiqsJjCogR7zfbU",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 116,
+      "output_tokens": 27,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_013YHWXhhR6WydQSnTZM2Ru7",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "bf6be474-7a58-5b6f-be14-35137160caf8",
+            "window": "1d",
+            "fn": "avg",
+            "start": "2026-02-26T12:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 549,
+      "output_tokens": 188,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Furnace-1 has trended downward over the past three days: daily average temperatures fell from about 858.4\u00b0C (Feb 26) to 819.9\u00b0C (Feb 27), 819.8\u00b0C (Feb 28), and 781.2\u00b0C (Mar 1, partial day). That's a decline of roughly 77\u00b0C over the period.",
+      "text_chunks": [
+        "Furnace-1 has",
+        " trended downward over the past three",
+        " days: daily average",
+        " temperatures fell from about",
+        " 858.4\u00b0C (",
+        "Feb 26) to 819",
+        ".9\u00b0C (Feb",
+        " 27),",
+        " 819.8\u00b0C (",
+        "Feb 28), and 781",
+        ".2\u00b0C (Mar",
+        " 1,",
+        " partial day). That",
+        "'s a",
+        " decline of roughly 77",
+        "\u00b0C over",
+        " the period."
+      ],
+      "tool_calls": [],
+      "input_tokens": 864,
+      "output_tokens": 106,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

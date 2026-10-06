@@ -1,0 +1,90 @@
+{
+  "case_id": "recall-furnace2-yesterday",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:53:51.283023+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01QSwgk6wZH3K97TXwGEyosv",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 111,
+      "output_tokens": 42,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01MDQzJiD6AUMTSc2uPZbVDN",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "40c0ba26-253b-5c3c-964b-e80f7742a81a",
+            "window": "1h",
+            "fn": "avg",
+            "start": "2026-02-28T00:00:00Z",
+            "end": "2026-03-01T00:00:00Z"
+          }
+        },
+        {
+          "id": "toolu_01UaJhvWvUdkYcHNS3pQc1W3",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "40c0ba26-253b-5c3c-964b-e80f7742a81a",
+            "window": "1d",
+            "fn": "min",
+            "start": "2026-02-28T00:00:00Z",
+            "end": "2026-03-01T00:00:00Z"
+          }
+        },
+        {
+          "id": "toolu_01Ae9YYdkuMvWCoZexCNtnvg",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "40c0ba26-253b-5c3c-964b-e80f7742a81a",
+            "window": "1d",
+            "fn": "max",
+            "start": "2026-02-28T00:00:00Z",
+            "end": "2026-03-01T00:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 544,
+      "output_tokens": 562,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "On 2026-02-28, Furnace-2 ranged from about 679.7\u00b0C to 900.0\u00b0C, hovering in the 700\u2013880\u00b0C band through most of the day with peaks around 02:00\u201303:00 and 14:00 UTC. All readings stayed within its configured thresholds (200\u20131100\u00b0C).",
+      "text_chunks": [
+        "On ",
+        "2026-02-28,",
+        " Furnace-2 ",
+        "ranged from about",
+        " 679.7",
+        "\u00b0C to 900.0\u00b0",
+        "C, hov",
+        "ering in the 700",
+        "\u2013880\u00b0C band",
+        " through most",
+        " of the day with pe",
+        "aks around 02:00\u2013",
+        "03:00 and 14:",
+        "00 UTC.",
+        " All readings stayed within its",
+        " configured thresholds (200",
+        "\u20131100\u00b0C)."
+      ],
+      "tool_calls": [],
+      "input_tokens": 1982,
+      "output_tokens": 100,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

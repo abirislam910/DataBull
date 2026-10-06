@@ -1,0 +1,102 @@
+{
+  "case_id": "agg-flow-weekly-rollup",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:55:03.789893+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01KCdauGfRWYcAu65zQrHdmG",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 118,
+      "output_tokens": 27,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "No device named \"Inlet-Flow-1\" matches other real names... wait, it exists. Let me pull the weekly aggregate.",
+      "text_chunks": [
+        "No device named \"Inlet",
+        "-Flow-1\" mat",
+        "ches other",
+        " real names... wait, it ex",
+        "ists. Let me pull the",
+        " weekly a",
+        "ggregate."
+      ],
+      "tool_calls": [
+        {
+          "id": "toolu_016qPADiwcp8JFnbfZLiw2Xy",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "17004192-67e3-5cb7-92b9-f18058ebd32b",
+            "window": "1w",
+            "fn": "avg",
+            "start": "2026-01-04T12:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        },
+        {
+          "id": "toolu_018nUdZnoyJeWTuzARykC2Ut",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "17004192-67e3-5cb7-92b9-f18058ebd32b",
+            "window": "1w",
+            "fn": "min",
+            "start": "2026-01-04T12:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        },
+        {
+          "id": "toolu_01BDbaugVEyWoUecEjdFYb3Y",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "17004192-67e3-5cb7-92b9-f18058ebd32b",
+            "window": "1w",
+            "fn": "max",
+            "start": "2026-01-04T12:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 551,
+      "output_tokens": 602,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Weekly rollup for Inlet-Flow-1 (L/min), data available for two recent weeks:\n\n- Week of 2026-02-16: avg 56.05, min 46.91, max 63.93\n- Week of 2026-02-23: avg 47.37, min 32.81, max 63.61\n\nNo data was returned for earlier weeks in the requested range (2026-01-04 to 2026-02-16).",
+      "text_chunks": [
+        "We",
+        "ekly rollup for In",
+        "let-Flow-1",
+        " (L/min),",
+        " data available",
+        " for two",
+        " recent weeks:\n\n-",
+        " Week of 2026-02-",
+        "16: avg 56.05",
+        ",",
+        " min 46.91, max ",
+        "63.93\n- Week of",
+        " 2026-02-23:",
+        " avg 47.37, min",
+        " 32.81, max 63",
+        ".61\n\nNo data",
+        " was returned for earlier we",
+        "eks in the requ",
+        "ested range (",
+        "2026-01-04 to",
+        " 2026-02-16)."
+      ],
+      "tool_calls": [],
+      "input_tokens": 1429,
+      "output_tokens": 133,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "case_id": "multi-alerts-then-detail",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:55:35.495634+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01AN4k89voLrNaUtWwppP1W1",
+          "name": "get_recent_alerts",
+          "input": {
+            "since": "2026-03-01T00:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 117,
+      "output_tokens": 96,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01XsYbWNyW1YNjF6hQbu9egF",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 508,
+      "output_tokens": 52,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_018nysLx3By18nw3dJB7SskS",
+          "name": "query_readings",
+          "input": {
+            "device_id": "40c0ba26-253b-5c3c-964b-e80f7742a81a",
+            "start": "2026-03-01T09:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        },
+        {
+          "id": "toolu_01J6XkqGmdymUkKBCFpp5JiE",
+          "name": "query_readings",
+          "input": {
+            "device_id": "035ae0df-7282-5a65-a678-22c9b74f9053",
+            "start": "2026-03-01T09:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 941,
+      "output_tokens": 281,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Yes \u2014 two devices breached thresholds today (2026-03-01):\n\n**Furnace-2** (max threshold 1100\u00b0C) spiked twice: 1110\u00b0C at 10:30 and 1109\u00b0C at 11:45, while surrounding readings were a normal 708\u2013766\u00b0C.\n\n**Pump-3** (max threshold 8 bar) spiked three times: 10.11 bar at 09:15, 9.11 bar at 10:30, and 8.11 bar at 11:45, versus a normal baseline of ~3.9\u20135.2 bar.",
+      "text_chunks": [
+        "Yes \u2014 two",
+        " devices bre",
+        "ached th",
+        "resholds today (",
+        "2",
+        "026-03-01):\n\n**",
+        "Furnace-2** (",
+        "max thre",
+        "shold 1100\u00b0C)",
+        " sp",
+        "iked tw",
+        "ice: 1110",
+        "\u00b0C at 10:30 ",
+        "and 1109\u00b0C at ",
+        "11:45, while surroun",
+        "ding readings were a",
+        " normal 708",
+        "\u2013766\u00b0C.\n\n**",
+        "Pump-3** (max thre",
+        "shold 8 bar)",
+        " spiked three times: 10",
+        ".11 bar at 09",
+        ":15, 9.11 ",
+        "bar at 10:30,",
+        " and 8.11 bar",
+        " at 11:45, vers",
+        "us a",
+        " normal baseline of ",
+        "~3",
+        ".9\u20135.2 b",
+        "ar."
+      ],
+      "tool_calls": [],
+      "input_tokens": 1958,
+      "output_tokens": 178,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

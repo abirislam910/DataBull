@@ -1,0 +1,73 @@
+{
+  "case_id": "multi-compare-pumps",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:55:26.307090+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01X5XAKTrajE23mcnbkxfiJx",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 123,
+      "output_tokens": 39,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01Ah7Yv6azchJ6VT6qHkYfWT",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "035ae0df-7282-5a65-a678-22c9b74f9053",
+            "window": "1d",
+            "fn": "avg",
+            "start": "2026-03-01T00:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        },
+        {
+          "id": "toolu_01ATaydEutWDF3HzmkFdEBNS",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "56b957f5-7613-532f-8642-167ac4749dc0",
+            "window": "1d",
+            "fn": "avg",
+            "start": "2026-03-01T00:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 556,
+      "output_tokens": 372,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Pump-3 ran at a higher average pressure today (2026-03-01T00:00\u201312:00 UTC): 5.45 bar vs. Pump-4's 3.91 bar.",
+      "text_chunks": [
+        "Pump-3 ran",
+        " at a",
+        " higher average pressure today",
+        " (",
+        "2026-03-01T00",
+        ":00\u201312:00 ",
+        "UTC):",
+        " 5.45 bar v",
+        "s.",
+        " Pump-4's 3",
+        ".91 bar."
+      ],
+      "tool_calls": [],
+      "input_tokens": 1054,
+      "output_tokens": 63,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

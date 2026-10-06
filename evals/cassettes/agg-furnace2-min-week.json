@@ -1,0 +1,63 @@
+{
+  "case_id": "agg-furnace2-min-week",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:54:31.011938+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01TDURHGxdXb9HuBQtpsFfXK",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 114,
+      "output_tokens": 42,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_0166TvGZHxjQ9CHP3HR8ZLo5",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "40c0ba26-253b-5c3c-964b-e80f7742a81a",
+            "window": "1d",
+            "fn": "min",
+            "start": "2026-02-23T00:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 547,
+      "output_tokens": 189,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "The lowest Furnace-2 reading this week (2026-02-23 to 2026-03-01) was **679.133\u00b0C**, recorded on 2026-02-25.",
+      "text_chunks": [
+        "The lowest",
+        " Furnace-2 reading",
+        " this week (",
+        "2",
+        "026-02-23 ",
+        "to 2026-03-01",
+        ")",
+        " was **",
+        "679.133",
+        "\u00b0C**, rec",
+        "orded on 2026-02",
+        "-25."
+      ],
+      "tool_calls": [],
+      "input_tokens": 953,
+      "output_tokens": 55,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

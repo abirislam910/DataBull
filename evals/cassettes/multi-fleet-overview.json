@@ -1,0 +1,78 @@
+{
+  "case_id": "multi-fleet-overview",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:55:47.259120+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01YE1WQ6QUwqLKuUSLdibcTw",
+          "name": "list_devices",
+          "input": {}
+        },
+        {
+          "id": "toolu_019PL6vwUWYzPw7GZ4heU4y6",
+          "name": "get_recent_alerts",
+          "input": {
+            "since": "2026-02-22T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 111,
+      "output_tokens": 89,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "You monitor 5 devices: Furnace-1 and Furnace-2 (temperature, 200\u20131100\u00b0C), Pump-3 and Pump-4 (pressure, 1\u20138 bar), and Inlet-Flow-1 (flow, 10\u201390 L/min).\n\nIn the past week, **Furnace-2** breached its max threshold twice (1110\u00b0C at 10:30 and 1109\u00b0C at 11:45 on 2026-03-01), and **Pump-3** breached its max pressure threshold three times (10.11, 9.11, and 8.11 bar between 09:15 and 11:45 on 2026-03-01). Furnace-1, Pump-4, and Inlet-Flow-1 show no alerts in this period.",
+      "text_chunks": [
+        "You monitor 5 dev",
+        "ices: Furnace-1",
+        " ",
+        "and Furnace-2 ",
+        "(temperature,",
+        " ",
+        "200\u20131100\u00b0C),",
+        " Pump-3 and P",
+        "ump-4 (pressure",
+        ", 1\u20138 bar",
+        "), and Inlet-",
+        "Flow-1 (flow",
+        ", 10\u201390 L/",
+        "min).\n\nIn",
+        " the past week,",
+        " **Furnace-2**",
+        " bre",
+        "ached its max threshold twice",
+        " (1110\u00b0",
+        "C at 10",
+        ":30 and 1109\u00b0",
+        "C at 11:45 on",
+        " 2026-03-01),",
+        " and **Pump-3**",
+        " breached its max pressure thre",
+        "shold three times (10",
+        ".11, 9.11,",
+        " and 8.11 bar",
+        " between",
+        " 09:15 ",
+        "and 11:45 on ",
+        "2026-03-01).",
+        " Furnace-1, P",
+        "ump-4, and Inl",
+        "et-Flow-1 ",
+        "show",
+        " no al",
+        "erts in",
+        " this period",
+        "."
+      ],
+      "tool_calls": [],
+      "input_tokens": 984,
+      "output_tokens": 239,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

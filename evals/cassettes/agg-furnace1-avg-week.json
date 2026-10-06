@@ -1,0 +1,73 @@
+{
+  "case_id": "agg-furnace1-avg-week",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:54:55.990454+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01QUv2BQ7xuA6qnYHGUzXtXA",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 113,
+      "output_tokens": 43,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01SEufvRbe5X6kn5Vnf9Wj3e",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "bf6be474-7a58-5b6f-be14-35137160caf8",
+            "window": "1d",
+            "fn": "avg",
+            "start": "2026-02-23T00:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 546,
+      "output_tokens": 188,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "The average daily temperature for Furnace-1 from Feb 23\u2013Mar 1, 2026 ranged about 781\u2013821\u00b0C, with an overall average of roughly 814\u00b0C across the week. Most days hovered around 819\u2013820\u00b0C, with a dip to ~781\u00b0C on March 1 (partial day data).",
+      "text_chunks": [
+        "The",
+        " average da",
+        "ily temperature for Furn",
+        "ace-1 from",
+        " Feb 23\u2013",
+        "Mar 1, 2",
+        "026 ",
+        "ranged about",
+        " 781\u2013821",
+        "\u00b0C, with an",
+        " overall average",
+        " of roughly 814",
+        "\u00b0C across the week.",
+        " Most",
+        " days h",
+        "overed around",
+        " 819\u2013820\u00b0C,",
+        " with a",
+        " dip to",
+        " ~781\u00b0C on March",
+        " 1 (partial day data",
+        ")."
+      ],
+      "tool_calls": [],
+      "input_tokens": 951,
+      "output_tokens": 141,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

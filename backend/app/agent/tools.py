@@ -18,9 +18,8 @@ from typing import Any
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from app.agent.services import AgentServices
-from app.schemas.reading import AggregateFn, AggregateWindow
-
 from app.core.config import get_settings
+from app.schemas.reading import AggregateFn, AggregateWindow
 
 # Cap on how much of a tool's output is fed back to the model, from
 # SPEC § Tool policy. Enforced on the serialized JSON, because that is what
