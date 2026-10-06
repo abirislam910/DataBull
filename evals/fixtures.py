@@ -192,8 +192,7 @@ def _percentile(values: Sequence[float], fraction: float) -> float:
     return ordered[low] * (1 - weight) + ordered[high] * weight
 
 
-# Annotated explicitly: without it mypy infers the value type from four
-# differently-shaped callables and lands on `object`, which is not callable.
+# Annotated explicitly: mypy otherwise infers `object` from the mixed callables.
 _AGGREGATORS: dict[AggregateFn, Callable[[Sequence[float]], float]] = {
     AggregateFn.AVG: lambda values: sum(values) / len(values),
     AggregateFn.MIN: min,

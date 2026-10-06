@@ -242,6 +242,120 @@ def test_ordered_mode_allows_extra_calls_but_not_a_missing_one() -> None:
     assert not missing and problems
 
 
+def test_ordered_mode_pairs_arg_aware_when_the_model_fans_out() -> None:
+    """Several calls per device must not shift the pairing to the wrong one."""
+    expected = (
+        ExpectedTool("list_devices"),
+        ExpectedTool("aggregate_window", {"device_id": "device:Furnace-1"}),
+        ExpectedTool("aggregate_window", {"device_id": "device:Furnace-2"}),
+    )
+    f1, f2 = str(device_id("Furnace-1")), str(device_id("Furnace-2"))
+    fanned_out = [
+        ActualCall("list_devices", {}),
+        ActualCall("aggregate_window", {"device_id": f1}),
+        ActualCall("aggregate_window", {"device_id": f1}),
+        ActualCall("aggregate_window", {"device_id": f1}),
+        ActualCall("aggregate_window", {"device_id": f2}),
+        ActualCall("aggregate_window", {"device_id": f2}),
+    ]
+    ok, problems = grade_tools(expected, fanned_out, "ordered", None)
+    assert ok, problems
+
+    # The relative order still matters: Furnace-2 before any Furnace-1 must fail.
+    reversed_order, problems = grade_tools(
+        expected,
+        [
+            ActualCall("list_devices", {}),
+            ActualCall("aggregate_window", {"device_id": f2}),
+        ],
+        "ordered",
+        None,
+    )
+    assert not reversed_order and problems
+
+
+def test_forbidden_tools_are_reported() -> None:
+    ok, problems = grade_tools(
+        (ExpectedTool("list_devices"),),
+        [
+            ActualCall("list_devices", {}),
+            ActualCall("query_readings", {"device_id": str(uuid.uuid4())}),
+        ],
+        "ordered",
+        None,
+        ("query_readings", "aggregate_window"),
+    )
+    assert not ok
+    assert any("forbids" in problem for problem in problems)
+
+    clean, _ = grade_tools(
+        (ExpectedTool("list_devices"),),
+        [ActualCall("list_devices", {})],
+        "ordered",
+        None,
+        ("query_readings",),
+    )
+    assert clean
+
+
+def test_must_match_covers_phrasings_a_substring_list_would_miss() -> None:
+    """One alternation should accept every way a model might say "no such device"."""
+    pattern = (
+        r"(?i)\b(?:no|not|don'?t|doesn'?t|cannot|can'?t|unable)\b"
+        r"(?:\W+\w+){0,6}?\W+(?:see|find|have|exist|locate|device|record)"
+    )
+    rubric = Rubric(must_match=(pattern,))
+    for phrasing in (
+        'I don\'t see a device named "Compressor-9" in your account.',
+        "There is no device called Compressor-9 in your fleet.",
+        "I can't find Compressor-9 among your devices.",
+        "Compressor-9 does not exist in your account.",
+        "I was unable to locate a device by that name.",
+        "I have no record of Compressor-9.",
+    ):
+        ok, problems = grade_rubric(rubric, phrasing)
+        assert ok, f"{phrasing!r}: {problems}"
+
+    # A fabricated answer has no negation anywhere, so it must still fail.
+    rejected, problems = grade_rubric(
+        rubric, "Compressor-9 averaged 4.2 bar over the last hour."
+    )
+    assert not rejected and problems
+
+
+def test_tool_agnostic_case_still_rejects_an_ungrounded_answer() -> None:
+    """That case accepts either read tool, so its rubric carries the weight."""
+    case = next(c for c in load_cases() if c.id == "recall-furnace2-yesterday")
+
+    grounded = "On 2026-02-28 (yesterday), Furnace-2 ranged from 679.67°C to 899.96°C."
+    ok, problems = grade_rubric(case.rubric, grounded)
+    assert ok, problems
+
+    for ungrounded in (
+        "Furnace-2 looked normal yesterday.",  # right day, no reading
+        "On 2026-02-28 Furnace-2 was fine.",  # date digits must not count as a value
+        "Furnace-2 ranged from 679.67°C to 899.96°C.",  # a reading, but no window
+        "I was unable to retrieve Furnace-2 data.",
+    ):
+        rejected, problems = grade_rubric(case.rubric, ungrounded)
+        assert not rejected, f"rubric wrongly accepted: {ungrounded!r}"
+        assert problems
+
+
+def test_loader_rejects_a_broken_must_match_regex(tmp_path: Path) -> None:
+    bad = tmp_path / "bad.yaml"
+    bad.write_text(
+        "cases:\n"
+        "  - id: x\n"
+        "    category: simple_recall\n"
+        "    question: hi\n"
+        "    rubric:\n"
+        "      must_match: ['(unclosed']\n"
+    )
+    with pytest.raises(ValueError, match="bad must_match regex"):
+        load_cases(bad)
+
+
 def test_set_mode_ignores_order_and_still_checks_arguments() -> None:
     expected = (
         ExpectedTool("aggregate_window", {"device_id": "device:Pump-3"}),

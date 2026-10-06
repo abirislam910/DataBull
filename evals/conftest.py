@@ -32,13 +32,10 @@ for entry in (REPO_ROOT, BACKEND):
     if str(entry) not in sys.path:
         sys.path.insert(0, str(entry))
 
-# `app.agent.tools` reads settings at import time, and `SECRET_KEY` has no
-# default by design (see core/config.py). The eval suite never mints or verifies
-# a token, so that is incidental coupling through the settings singleton — not a
-# real requirement. Supplying a throwaway value keeps `pytest evals/` working on
-# a fresh clone with no `.env`, instead of failing during collection.
-#
-# Set before any `app.*` import below, because `get_settings()` is cached.
+# `app.agent.tools` reads settings at import time and `SECRET_KEY` has no default,
+# but the eval suite never mints or verifies a token. A throwaway value keeps
+# `pytest evals/` working on a clone with no `.env`. Set before any `app.*` import,
+# because `get_settings()` is cached.
 os.environ.setdefault("SECRET_KEY", "eval-suite-only-never-used-to-sign-anything")
 
 if TYPE_CHECKING:

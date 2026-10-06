@@ -79,7 +79,8 @@ taped under so a stale one is identifiable.
   category: aggregation
   question: What is the average pressure on Pump-3 today?
   match: exact            # exact | ordered | set   (default exact)
-  max_tools: 4            # optional ceiling
+  max_tools: 4            # optional ceiling on total calls
+  forbid_tools: []        # tools that must NOT be called
   expect_tools:
     - name: list_devices
     - name: aggregate_window
@@ -92,13 +93,14 @@ taped under so a stale one is identifiable.
     must_include: [Pump-3]              # all of these
     must_include_any: [bar, average]    # at least one
     must_not_include: [will fail]       # none
+    must_match: ['(?i)\baverage\b']     # regexes, all must match
 ```
 
 Arguments are matched as **patterns, not values** (SPEC's wording). The eval cares
 that `window` was `1h` and that the device was Pump-3 — not which exact timestamp
 the model picked for `start`.
 
-Two things worth knowing when writing a case:
+### Three things worth knowing
 
 **Nearly every sequence opens with `list_devices`.** The other three tools take a
 `device_id` UUID, and `list_devices` is the only place the model can get one. That
@@ -106,6 +108,11 @@ is a property of the tool surface, not of phrasing.
 
 **An unknown rubric key is an error, not a no-op.** `must_includ: [...]` would
 otherwise check nothing and pass silently, so the loader rejects it.
+
+**`ordered` tolerates fan-out.** A model answering "compare A and B" may make
+several calls per device. Both `ordered` and `set` pair each expectation with a
+call that satisfies its *arguments*, not merely the next one sharing its name. Use
+`exact` only when you genuinely mean "these calls and no others".
 
 ## Determinism
 

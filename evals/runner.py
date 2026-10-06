@@ -146,7 +146,11 @@ async def test_case(case: Case) -> None:
         pytest.skip(str(exc))
 
     tools_ok, tool_failures = grade_tools(
-        case.expect_tools, transcript.tool_calls, case.match, case.max_tools
+        case.expect_tools,
+        transcript.tool_calls,
+        case.match,
+        case.max_tools,
+        case.forbid_tools,
     )
     rubric_ok, rubric_failures = grade_rubric(case.rubric, transcript.answer)
 

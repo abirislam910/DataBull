@@ -41,7 +41,9 @@ EXPECTED_DISTRIBUTION: dict[str, int] = {
 }
 
 _MATCH_MODES = ("exact", "ordered", "set")
-_RUBRIC_KEYS = frozenset({"must_include", "must_include_any", "must_not_include"})
+_RUBRIC_KEYS = frozenset(
+    {"must_include", "must_include_any", "must_not_include", "must_match"}
+)
 
 
 @dataclass(frozen=True)
@@ -57,6 +59,8 @@ class Rubric:
     must_include: tuple[str, ...] = ()
     must_include_any: tuple[str, ...] = ()
     must_not_include: tuple[str, ...] = ()
+    # Regexes, every one of which must match somewhere in the answer.
+    must_match: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -68,6 +72,8 @@ class Case:
     rubric: Rubric
     match: MatchMode = "exact"
     max_tools: int | None = None
+    # Tools that must NOT be called — grades behaviour rather than prose.
+    forbid_tools: tuple[str, ...] = ()
 
 
 def _parse_rubric(raw: dict[str, Any], case_id: str) -> Rubric:
@@ -76,10 +82,22 @@ def _parse_rubric(raw: dict[str, Any], case_id: str) -> Rubric:
         # A typo in a rubric key would otherwise silently weaken the case —
         # `must_include_al: [...]` would check nothing at all and still pass.
         raise ValueError(f"{case_id}: unknown rubric key(s) {sorted(unknown)}")
+
+    patterns = tuple(raw.get("must_match", ()))
+    for pattern in patterns:
+        # Compile at load time so a broken pattern fails the suite, not one case.
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise ValueError(
+                f"{case_id}: bad must_match regex {pattern!r}: {exc}"
+            ) from exc
+
     return Rubric(
         must_include=tuple(raw.get("must_include", ())),
         must_include_any=tuple(raw.get("must_include_any", ())),
         must_not_include=tuple(raw.get("must_not_include", ())),
+        must_match=patterns,
     )
 
 
@@ -118,6 +136,7 @@ def load_cases(path: Path | None = None) -> list[Case]:
                 max_tools=(
                     int(raw["max_tools"]) if raw.get("max_tools") is not None else None
                 ),
+                forbid_tools=tuple(raw.get("forbid_tools") or ()),
             )
         )
 
@@ -189,12 +208,20 @@ def grade_tools(
     actual: list[ActualCall],
     mode: MatchMode,
     max_tools: int | None,
+    forbid_tools: tuple[str, ...] = (),
 ) -> tuple[bool, list[str]]:
     """Compare the calls the model made against what the case expects."""
     problems: list[str] = []
 
     if max_tools is not None and len(actual) > max_tools:
         problems.append(f"made {len(actual)} tool calls, ceiling is {max_tools}")
+
+    forbidden = {name.lower() for name in forbid_tools}
+    for call in actual:
+        if call.name.lower() in forbidden:
+            problems.append(
+                f"called {call.name!r}, which this case forbids (input {call.input!r})"
+            )
 
     if mode == "exact":
         if [call.name for call in actual] != [exp.name for exp in expected]:
@@ -213,10 +240,9 @@ def grade_tools(
                 f"{sorted(e.name for e in expected)}"
             )
         else:
-            # Pair each expectation with a call that actually satisfies it, not
-            # merely the first one sharing its name: two `aggregate_window`
-            # expectations differing only by `device_id` would otherwise be
-            # paired in whatever order the model happened to emit them.
+            # Pair each expectation with a call that satisfies it, not merely the
+            # first one sharing its name — two `aggregate_window` expectations
+            # may differ only by `device_id`.
             remaining = list(actual)
             for exp in expected:
                 hit = next(
@@ -228,8 +254,8 @@ def grade_tools(
                     None,
                 )
                 if hit is None:
-                    # Nothing satisfies it; report against the first by name so
-                    # the message says which argument was wrong.
+                    # Fall back to the first by name, so the message names the
+                    # offending argument.
                     hit = next((c for c in remaining if c.name == exp.name), None)
                     if hit is not None:
                         problems.extend(_args_failures(exp, hit))
@@ -237,15 +263,39 @@ def grade_tools(
                     remaining.remove(hit)
 
     else:  # ordered — expected calls appear in this relative order; extras allowed
+        # Scan for a call that satisfies the whole expectation, so a model that
+        # fans out — several calls on one device before moving to the next — is
+        # still matched against the call the case meant.
         cursor = 0
         for exp in expected:
-            while cursor < len(actual) and actual[cursor].name != exp.name:
-                cursor += 1
-            if cursor >= len(actual):
+            satisfying = next(
+                (
+                    index
+                    for index in range(cursor, len(actual))
+                    if actual[index].name == exp.name
+                    and not _args_failures(exp, actual[index])
+                ),
+                None,
+            )
+            if satisfying is not None:
+                cursor = satisfying + 1
+                continue
+
+            # Fall back to the next call of the same name, so the message names
+            # the offending argument.
+            by_name = next(
+                (
+                    index
+                    for index in range(cursor, len(actual))
+                    if actual[index].name == exp.name
+                ),
+                None,
+            )
+            if by_name is None:
                 problems.append(f"expected a {exp.name} call, never saw one (in order)")
                 break
-            problems.extend(_args_failures(exp, actual[cursor]))
-            cursor += 1
+            problems.extend(_args_failures(exp, actual[by_name]))
+            cursor = by_name + 1
 
     return not problems, problems
 
@@ -263,6 +313,11 @@ def grade_rubric(rubric: Rubric, answer: str) -> tuple[bool, list[str]]:
         needle.lower() in haystack for needle in rubric.must_include_any
     ):
         problems.append(f"answer contains none of {list(rubric.must_include_any)}")
+
+    for pattern in rubric.must_match:
+        # Matched against the original text, so `(?i)` is opt-in per pattern.
+        if re.search(pattern, answer) is None:
+            problems.append(f"answer matches no /{pattern}/")
 
     for needle in rubric.must_not_include:
         if needle.lower() in haystack:

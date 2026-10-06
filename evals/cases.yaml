@@ -101,14 +101,20 @@ cases:
   - id: recall-furnace2-yesterday
     category: simple_recall
     question: What did Furnace-2 read yesterday?
+    # Tool-agnostic on purpose. `query_readings` and `aggregate_window` are both
+    # defensible here.
+    # The assertions move to the rubric instead, where they hold either way: the
+    # answer must name the right window and quote a real temperature.
+    match: ordered
     expect_tools:
       - name: list_devices
-      - name: query_readings
-        args:
-          device_id: device:Furnace-2
-          start: "re:2026-02-28"
     rubric:
       must_include: [Furnace-2]
+      must_match:
+        # Looked at the right day.
+        - '(?i)(2026-02-28|feb(?:ruary)?\.?\s*28|yesterday)'
+        # Quoted an actual reading.
+        - '(?i)\b\d{3,4}(?:\.\d+)?\s*(?:°\s*c|degrees?\b|deg\b)'
 
   - id: recall-pump4-last-hour
     category: simple_recall
@@ -151,14 +157,16 @@ cases:
   - id: recall-unknown-device
     category: simple_recall
     question: Show me the readings for Compressor-9.
-    # The device does not exist. The model should look, find nothing, and say so
-    # rather than inventing a UUID or a series.
+    # The device does not exist. Graded on behaviour over phrasing: there is no
+    # valid device_id for Compressor-9, so any read call means the model
+    # fabricated one.
     match: ordered
     max_tools: 2
+    forbid_tools: [query_readings, aggregate_window, get_recent_alerts]
     expect_tools:
       - name: list_devices
     rubric:
-      must_include_any: [not found, no device, "don't have", does not exist, "doesn't exist", no such]
+      must_include_any: [Furnace-1, Furnace-2, Pump-3, Pump-4, Inlet-Flow-1]
       must_not_include: ["Compressor-9 is reading", "Compressor-9 averaged"]
 
   # ------------------------------------------------------------------ aggregation

@@ -1,0 +1,51 @@
+{
+  "case_id": "recall-list-devices",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:53:18.715357+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_0138MbLCaPR6w732wS283P85",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 106,
+      "output_tokens": 27,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "You're monitoring 5 devices:\n\n1. **Furnace-1** \u2013 temperature (\u00b0C), thresholds 200\u20131100\n2. **Furnace-2** \u2013 temperature (\u00b0C), thresholds 200\u20131100\n3. **Pump-3** \u2013 pressure (bar), thresholds 1\u20138\n4. **Pump-4** \u2013 pressure (bar), thresholds 1\u20138\n5. **Inlet-Flow-1** \u2013 flow (L/min), thresholds 10\u201390",
+      "text_chunks": [
+        "You're monitoring ",
+        "5 devices:\n\n1.",
+        " **Furnace-1**",
+        " \u2013",
+        " temperature (\u00b0C), th",
+        "resholds 200\u20131100",
+        "\n2. **Furnace-",
+        "2** \u2013 temperature (\u00b0",
+        "C), thresholds 200",
+        "\u20131100\n3. **",
+        "Pump-3** \u2013 press",
+        "ure (bar), threshol",
+        "ds 1\u20138\n4.",
+        " **Pump-4** \u2013",
+        " pressure (bar), th",
+        "resholds 1\u20138",
+        "\n5. **Inlet-",
+        "Flow-1** \u2013 fl",
+        "ow (L/min), thres",
+        "holds 10\u201390"
+      ],
+      "tool_calls": [],
+      "input_tokens": 539,
+      "output_tokens": 153,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

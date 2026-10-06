@@ -23,8 +23,6 @@ Every device, reading, and conversation is scoped to the authenticated user. Cro
 9. [Deployment](#deployment)
 10. [API Reference](#api-reference)
 11. [Roadmap](#roadmap)
-12. [Contributing](#contributing)
-13. [License](#license)
 
 ---
 

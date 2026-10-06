@@ -1,0 +1,40 @@
+{
+  "case_id": "recall-thresholds-pump3",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:53:29.520920+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01XfpQXMYaUcRSkMZMxQCiWQ",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 111,
+      "output_tokens": 52,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Pump-3 (pressure, bar) has alarm thresholds configured at a minimum of 1.0 bar and a maximum of 8.0 bar.",
+      "text_chunks": [
+        "Pump-3 (p",
+        "ressure,",
+        " bar) has al",
+        "arm th",
+        "resholds configured at a min",
+        "imum of 1.0 ",
+        "bar and a",
+        " maximum of 8.0",
+        " bar."
+      ],
+      "tool_calls": [],
+      "input_tokens": 544,
+      "output_tokens": 53,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

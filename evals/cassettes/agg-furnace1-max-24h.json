@@ -1,0 +1,63 @@
+{
+  "case_id": "agg-furnace1-max-24h",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:54:24.717927+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_018w1kifz1rZ2mCEnESAuMYi",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 121,
+      "output_tokens": 27,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_015omRxaEDK5S5uLd8zAgRaK",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "bf6be474-7a58-5b6f-be14-35137160caf8",
+            "window": "1h",
+            "fn": "max",
+            "start": "2026-02-28T12:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 554,
+      "output_tokens": 187,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "The peak temperature on Furnace-1 in the last 24 hours (2026-02-28T12:00Z to 2026-03-01T12:00Z) was **892.08\u00b0C**, reached around 18:00 UTC on Feb 28.",
+      "text_chunks": [
+        "The peak temperature on",
+        " Furnace-1 in",
+        " the last 24 hours (",
+        "2026-02-28T12",
+        ":00Z to 2026",
+        "-03-01T12:00",
+        "Z) was **892.08",
+        "\u00b0C**, reached around",
+        " 18",
+        ":00 ",
+        "UTC on",
+        " Feb 28."
+      ],
+      "tool_calls": [],
+      "input_tokens": 1468,
+      "output_tokens": 79,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

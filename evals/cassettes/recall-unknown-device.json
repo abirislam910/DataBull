@@ -1,0 +1,43 @@
+{
+  "case_id": "recall-unknown-device",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:54:14.432840+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01K2tPws7MnrjhLdgyGpuhjc",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 110,
+      "output_tokens": 44,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "I don't see a device named \"Compressor-9\" in your account. Your available devices are: Furnace-1, Furnace-2, Pump-3, Pump-4, and Inlet-Flow-1. Let me know if you'd like readings from one of these instead.",
+      "text_chunks": [
+        "I don't see",
+        " a device named",
+        " \"Compressor-9\"",
+        " in your account. Your available",
+        " devices are: Furnace",
+        "-1, Furnace-",
+        "2, Pump-3,",
+        " Pump-4, and",
+        " Inlet-Flow-",
+        "1. Let me know if you",
+        "'d like readings from one of",
+        " these instead."
+      ],
+      "tool_calls": [],
+      "input_tokens": 543,
+      "output_tokens": 84,
+      "stop_reason": "end_turn"
+    }
+  ]
+}
