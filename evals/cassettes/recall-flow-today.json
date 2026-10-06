@@ -1,0 +1,89 @@
+{
+  "case_id": "recall-flow-today",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:54:05.516474+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01KqW51osRUz2tnWyDGhJrcg",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 106,
+      "output_tokens": 39,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_013TDR8Fwa2fKobbB2ef9wBy",
+          "name": "query_readings",
+          "input": {
+            "device_id": "17004192-67e3-5cb7-92b9-f18058ebd32b",
+            "start": "2026-03-01T00:00:00Z",
+            "end": "2026-03-01T12:00:00Z",
+            "limit": 1000
+          }
+        }
+      ],
+      "input_tokens": 539,
+      "output_tokens": 165,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Here are today's flow readings for **Inlet-Flow-1** (2026-03-01T00:00Z\u201312:00Z, L/min), showing the most recent values: 46.81 at 11:45, 45.25 at 11:30, 45.16 at 11:15, 50.13 at 11:00, and 42.74 at 10:45, trending down to around 32.8\u201342.8 L/min in the early morning hours (02:30\u201308:00). Note: this list is truncated (37 of 47 readings shown, oldest ~00:00\u201302:30 omitted) \u2014 let me know if you'd like the full set or an hourly average instead.",
+      "text_chunks": [
+        "Here are",
+        " today's fl",
+        "ow readings for **",
+        "Inlet-Flow",
+        "-1** (2",
+        "026-03-01T00:",
+        "00",
+        "Z\u201312:00Z,",
+        " L/min), showing the",
+        " most recent values: ",
+        "46",
+        ".81 at",
+        " 11:45,",
+        " 45.25 at 11",
+        ":30, 45.16 ",
+        "at 11:15, 50",
+        ".13 at 11:00",
+        ", and 42.74",
+        " at 10:45,",
+        " tr",
+        "ending down",
+        " to around",
+        " 32.",
+        "8\u201342.8 L/",
+        "min in the early morning hours",
+        " (02:30\u201308",
+        ":00). Note: this list",
+        " is truncated (37 of",
+        " 47",
+        " read",
+        "ings shown,",
+        " o",
+        "ldest ~00",
+        ":00\u201302:30 ",
+        "om",
+        "itted) \u2014 let me know if",
+        " you'd like the full set",
+        " or an h",
+        "ourly average instead."
+      ],
+      "tool_calls": [],
+      "input_tokens": 1794,
+      "output_tokens": 204,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

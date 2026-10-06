@@ -1,0 +1,68 @@
+{
+  "case_id": "agg-pump4-p95-day",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:54:36.840521+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01HjnNQhvjPsGxA6H5Uxu28f",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 121,
+      "output_tokens": 27,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01RwboSbPLmmhGAHpTvxJPT4",
+          "name": "aggregate_window",
+          "input": {
+            "device_id": "56b957f5-7613-532f-8642-167ac4749dc0",
+            "window": "1d",
+            "fn": "p95",
+            "start": "2026-02-28T12:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 554,
+      "output_tokens": 187,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Over the last 24 hours (2026-02-28 12:00 UTC to 2026-03-01 12:00 UTC), Pump-4's 95th percentile pressure was about 4.94 bar for the Feb 28 bucket and 4.80 bar for the Mar 1 bucket, both well within its 1\u20138 bar threshold range.",
+      "text_chunks": [
+        "Over the last 24 hours",
+        " (2026-02-28 ",
+        "12:00 UTC to",
+        " 2026-03-01 ",
+        "12:00 UTC),",
+        " Pump-4's ",
+        "95th percentile pressure",
+        " was about",
+        " 4.94",
+        " bar for",
+        " the Feb 28 b",
+        "ucket and 4.80 ",
+        "bar for the Mar ",
+        "1 bucket, both well",
+        " within its 1",
+        "\u20138 bar threshold",
+        " range."
+      ],
+      "tool_calls": [],
+      "input_tokens": 808,
+      "output_tokens": 114,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

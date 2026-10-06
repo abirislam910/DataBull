@@ -1,0 +1,64 @@
+{
+  "case_id": "alert-pump3-only",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:55:56.595939+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_016CkyE2yAeU9XkfMH1YKKYK",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 112,
+      "output_tokens": 45,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01WSzfhK54CJADLyYKtMvUNK",
+          "name": "get_recent_alerts",
+          "input": {
+            "since": "2026-02-22T12:00:00Z",
+            "device_id": "035ae0df-7282-5a65-a678-22c9b74f9053"
+          }
+        }
+      ],
+      "input_tokens": 545,
+      "output_tokens": 111,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Yes \u2014 Pump-3 breached its upper threshold (8.0 bar) three times in the last week: readings of 10.11 bar at 09:15, 9.11 bar at 10:30, and 8.11 bar at 11:45 (all on 2026-03-01 UTC).",
+      "text_chunks": [
+        "Yes \u2014 Pump-",
+        "3 breached its up",
+        "per threshold (8.",
+        "0 bar) three times in",
+        " the last",
+        " week",
+        ":",
+        " readings of 10.11 ",
+        "bar at 09:15,",
+        " 9.11 bar at",
+        " 10:30, and 8",
+        ".11 bar at 11",
+        ":45 (",
+        "all on 2026-03-",
+        "01 ",
+        "UTC)."
+      ],
+      "tool_calls": [],
+      "input_tokens": 846,
+      "output_tokens": 93,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

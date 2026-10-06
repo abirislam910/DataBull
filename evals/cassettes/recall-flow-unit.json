@@ -1,0 +1,34 @@
+{
+  "case_id": "recall-flow-unit",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:53:26.725887+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01Gpg2i6sSVfTsQKAL3KhiHp",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 114,
+      "output_tokens": 27,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Inlet-Flow-1 reports in L/min.",
+      "text_chunks": [
+        "Inlet-Flow",
+        "-1 reports in L/",
+        "min."
+      ],
+      "tool_calls": [],
+      "input_tokens": 547,
+      "output_tokens": 20,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

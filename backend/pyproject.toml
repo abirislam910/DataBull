@@ -34,7 +34,12 @@ dev = [
     "testcontainers",
     "ruff",
     "mypy",
-    "pip-audit>=2.10.1"
+    "pip-audit>=2.10.1",
+    # The eval suite reads /evals/cases.yaml. Declared rather than relied on
+    # transitively: it resolves today only because something else happens to
+    # pull it in, which is exactly how a clean CI install breaks.
+    "pyyaml",
+    "types-PyYAML"
 ]
 
 # Only the app package is importable/installable; alembic/ and tests/ are not

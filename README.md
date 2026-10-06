@@ -23,8 +23,6 @@ Every device, reading, and conversation is scoped to the authenticated user. Cro
 9. [Deployment](#deployment)
 10. [API Reference](#api-reference)
 11. [Roadmap](#roadmap)
-12. [Contributing](#contributing)
-13. [License](#license)
 
 ---
 
@@ -280,7 +278,13 @@ DataBull/
 │   ├── SPEC.md                   # the contract,  read before any change
 │   └── SIMULATOR.md              # placeholder; simulator not yet built
 │
-├── evals/                        # placeholder; agent eval suite not yet built
+├── evals/                        # agent eval suite — 30 cases, replayed from cassettes
+│   ├── cases.yaml                # the cases: question, tool sequence, rubric
+│   ├── runner.py                 # pytest module — calls run_agent directly
+│   ├── grading.py                # case schema, loader, both graders
+│   ├── fixtures.py               # deterministic fleet + in-memory repositories
+│   ├── cassette.py               # record/replay of Anthropic turns
+│   └── test_harness.py           # tests for the harness itself
 │   ├── cases.yaml
 │   └── runner.py
 │
@@ -390,20 +394,25 @@ cd backend && pytest -k test_agent      # one module
 
 # Frontend
 cd frontend && npm test
+
+# Agent evals,  replays recorded model turns; no API key, no network, no cost
+pytest evals/
 ```
 
-**182 tests** in total: 153 backend, 29 frontend.
+**204 tests** in total: 153 backend, 29 frontend, 22 eval-harness.
 
 Backend tests run against a PostgreSQL + TimescaleDB container via testcontainers. Each test runs inside a savepoint that is rolled back afterwards, so the suite is order-independent without rebuilding the schema per test.
 
 The agent is tested without spending money. `LLMClient` is a Protocol, so a scripted fake replays model turns and `run_agent` executes unmodified,  the real loop, the real tool dispatch, no network. The 25 agent tests run in about 0.1s with no database at all. Per `CLAUDE.md`, no test may make a live Anthropic call without a recorded fixture.
 
+**Evals are separate from tests.** `backend/tests/test_agent.py` proves the tool loop works; `evals/` asks whether the *model* picks the right tools and grounds its answers — a different question with a different failure mode. The 30 cases replay recorded Anthropic turns from `evals/cassettes/`, so CI runs them for free and deterministically. A case with no cassette yet is skipped and counted in the printed metrics, so an all-skipped run cannot be mistaken for a pass. Recording is opt-in, needs a key, and spends money: see [evals/README.md](evals/README.md).
+
 GitHub Actions runs two jobs on every push and pull request:
 
 | Job | Gates |
 |:----|:------|
-| `backend` | `pip-audit` · `ruff check` · `ruff format --check` · `mypy --strict app tests` · `pytest` |
-| `frontend` | `npm audit` (high+) · `eslint` · `prettier --check` · `tsc --noEmit` · `vitest` · `vite build` |
+| `backend` | `pip-audit` · `ruff check` · `ruff format --check` · `mypy --strict app tests` · `mypy --strict evals` · `ruff` on `evals` · `pytest` · `pytest evals/` (replay) |
+| `frontend` | `npm audit` (high+, production deps gate the build) · `eslint` · `prettier --check` · `tsc --noEmit` · `vitest` · `vite build` |
 
 ---
 
@@ -493,6 +502,6 @@ Built and tested; not yet started where noted.
 - [x] React dashboard,  fleet overview, device detail, charts
 - [x] AI operator's assistant and `POST /chat/stream`
 - [ ] **Frontend chat drawer**,  a persistent assistant panel on the dashboard and device detail pages (`SPEC.md` § Frontend § Scope)
-- [ ] **Agent eval suite**,  30 labeled cases in `evals/cases.yaml` with a pytest runner (`evals/` is currently a placeholder)
+- [x] **Agent eval suite**,  30 labeled cases with a cassette-replay runner (cassettes not yet recorded — see `evals/README.md`)
 - [ ] **Sensor simulator**,  APScheduler-driven synthetic telemetry with reproducible seeding (`docs/SIMULATOR.md` is currently a placeholder)
 - [ ] Hosted demo deployment

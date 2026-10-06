@@ -1,0 +1,73 @@
+{
+  "case_id": "recall-furnace1-recent",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:53:41.367423+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_017WZgT3Bb3Wg38K1kYkzcCt",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 112,
+      "output_tokens": 27,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01XRv1rYBJdDXTbLhuxewJJK",
+          "name": "query_readings",
+          "input": {
+            "device_id": "bf6be474-7a58-5b6f-be14-35137160caf8",
+            "start": "2026-03-01T10:00:00Z",
+            "end": "2026-03-01T12:00:00Z",
+            "limit": 20
+          }
+        }
+      ],
+      "input_tokens": 545,
+      "output_tokens": 163,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Here are the recent readings for Furnace-1 (2026-03-01, 10:00\u201311:45 UTC), in \u00b0C:\n\n- 11:45 \u2014 824.12\n- 11:30 \u2014 804.81\n- 11:15 \u2014 810.18\n- 11:00 \u2014 804.34\n- 10:45 \u2014 809.25\n- 10:30 \u2014 795.41\n- 10:15 \u2014 792.80\n- 10:00 \u2014 794.34\n\nAll readings are within the configured thresholds (200\u20131100\u00b0C).",
+      "text_chunks": [
+        "Here are the recent readings",
+        " for Furnace-1 ",
+        "(2",
+        "026-03-01,",
+        " 10:00\u201311:45",
+        " UTC), in \u00b0C",
+        ":\n\n- 11:45 ",
+        "\u2014 824.12",
+        "\n- 11:30 \u2014 ",
+        "804.81\n- 11:",
+        "15 \u2014 810.18",
+        "\n- 11:00 \u2014 ",
+        "804.34\n- 10:",
+        "45 \u2014 809.25",
+        "\n- 10:30 \u2014 ",
+        "795.41\n- 10:",
+        "15 \u2014 792.80",
+        "\n- 10:00 \u2014 ",
+        "794.34\n\nAll readings are",
+        " within the configured th",
+        "resholds (200\u2013",
+        "1100\u00b0",
+        "C)."
+      ],
+      "tool_calls": [],
+      "input_tokens": 939,
+      "output_tokens": 160,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

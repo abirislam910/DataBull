@@ -1,0 +1,41 @@
+{
+  "case_id": "alert-none-recent",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:55:59.270885+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_01KJrnJpoiPXsvV5QzQiEpKe",
+          "name": "get_recent_alerts",
+          "input": {
+            "since": "2026-03-01T11:50:00Z"
+          }
+        }
+      ],
+      "input_tokens": 112,
+      "output_tokens": 65,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "No alarms were recorded across your devices in the last ten minutes (2026-03-01T11:50:00Z to 12:00:00Z).",
+      "text_chunks": [
+        "No alarms were",
+        " recorded across",
+        " your",
+        " devices in the last ten min",
+        "utes (2026-03-",
+        "01T11:50:00",
+        "Z to 12",
+        ":00:00Z)."
+      ],
+      "tool_calls": [],
+      "input_tokens": 184,
+      "output_tokens": 47,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

@@ -41,6 +41,21 @@ jobs:
       - name: Type-check (mypy --strict)
         run: mypy app tests
 
+      # The eval suite lives outside the installed package, so it is type-checked
+      # by path rather than by module name. MYPYPATH lets it resolve both
+      # `evals.*` and `app.*`.
+      - name: Type-check evals (mypy --strict)
+        working-directory: .
+        env:
+          MYPYPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+        run: mypy --strict --config-file backend/pyproject.toml evals/
+
+      - name: Lint and format evals (ruff)
+        working-directory: .
+        run: |
+          ruff check evals/
+          ruff format --check evals/
+
       # testcontainers uses the Docker daemon preinstalled on ubuntu-latest to
       # start a real TimescaleDB; no services: block needed.
       # SECRET_KEY has no default by design, so CI supplies a throwaway one. It
@@ -50,6 +65,15 @@ jobs:
         env:
           SECRET_KEY: ci-only-secret-key-not-used-for-any-deployment
         run: pytest -q
+
+      # Replay mode: no API key, no network, no cost (SPEC § Eval plan). This
+      # gates the eval *harness* — the 22 tests in evals/test_harness.py. Cases
+      # with no recorded cassette are skipped, and the metrics block prints how
+      # many were actually graded, so an all-skipped run is visible rather than
+      # looking like a pass.
+      - name: Evals (replay mode)
+        working-directory: .
+        run: pytest evals/ -q
 
   # Independent of the backend job so the two run in parallel — a frontend-only
   # change gets its answer without waiting on testcontainers to pull Postgres.

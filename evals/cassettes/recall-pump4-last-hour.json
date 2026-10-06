@@ -1,0 +1,69 @@
+{
+  "case_id": "recall-pump4-last-hour",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:53:57.652734+00:00",
+  "turns": [
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_015yZEgeN62xPZG7MeQywQR3",
+          "name": "list_devices",
+          "input": {}
+        }
+      ],
+      "input_tokens": 113,
+      "output_tokens": 27,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "",
+      "text_chunks": [],
+      "tool_calls": [
+        {
+          "id": "toolu_012B4SP6fHYLmd2NV1ADQhj7",
+          "name": "query_readings",
+          "input": {
+            "device_id": "56b957f5-7613-532f-8642-167ac4749dc0",
+            "start": "2026-03-01T11:00:00Z",
+            "end": "2026-03-01T12:00:00Z"
+          }
+        }
+      ],
+      "input_tokens": 546,
+      "output_tokens": 140,
+      "stop_reason": "tool_use"
+    },
+    {
+      "text": "Here are Pump-4's readings from 11:00\u201312:00 UTC on 2026-03-01 (pressure in bar):\n\n- 11:00 \u2014 3.486 bar\n- 11:15 \u2014 3.561 bar\n- 11:30 \u2014 3.719 bar\n- 11:45 \u2014 4.063 bar\n\nAll values are within the configured thresholds (1.0\u20138.0 bar).",
+      "text_chunks": [
+        "Here are Pump-4",
+        "'s",
+        " readings from 11",
+        ":00\u201312:00 U",
+        "TC on",
+        " 2026-03-01 ",
+        "(pressure in bar):",
+        "\n\n- 11:00",
+        " \u2014",
+        " 3.486 bar",
+        "\n- 11:15 \u2014 ",
+        "3.561 bar\n-",
+        " 11:30 \u2014 3",
+        ".719 bar\n- ",
+        "11:45 \u2014 4.",
+        "063 bar\n\nAll values",
+        " are within the config",
+        "ured thresholds (1.",
+        "0\u20138.0 bar",
+        ")."
+      ],
+      "tool_calls": [],
+      "input_tokens": 805,
+      "output_tokens": 127,
+      "stop_reason": "end_turn"
+    }
+  ]
+}

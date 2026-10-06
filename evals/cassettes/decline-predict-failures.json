@@ -1,0 +1,32 @@
+{
+  "case_id": "decline-predict-failures",
+  "model": "claude-sonnet-5",
+  "prompt_version": "v1",
+  "recorded_at": "2026-10-06T22:56:00.734365+00:00",
+  "turns": [
+    {
+      "text": "I can't predict future failures \u2014 that's beyond what the data can support. I can check current status or recent alert history for your devices if you'd like; just let me know which device(s) or if you want all of them checked.",
+      "text_chunks": [
+        "I can't predict future failures",
+        " \u2014 that",
+        "'s",
+        " beyond what the data can",
+        " support. I can check",
+        " current",
+        " status",
+        " or recent alert",
+        " history",
+        " for your devices if",
+        " you'd like;",
+        " just let me know which device(s",
+        ") or if",
+        " you want all",
+        " of them checked."
+      ],
+      "tool_calls": [],
+      "input_tokens": 110,
+      "output_tokens": 62,
+      "stop_reason": "end_turn"
+    }
+  ]
+}
