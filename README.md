@@ -258,14 +258,16 @@ DataBull/
 │   │   │   └── AuthForm.tsx           # shared credential form
 │   │   ├── components/
 │   │   │   ├── AppShell.tsx           # nav + layout for authed routes
+│   │   │   ├── ChatDrawer.tsx         # assistant panel, streamed over SSE
 │   │   │   ├── ProtectedRoute.tsx     # redirects unauthenticated users
 │   │   │   ├── ReadingsChart.tsx      # Recharts time-series view
 │   │   │   ├── ConfirmDialog.tsx      # destructive-action confirmation
 │   │   │   ├── states/DataStates.tsx  # loading / empty / error states
 │   │   │   └── ui/                    # shadcn primitives
 │   │   ├── lib/
-│   │   │   ├── api.ts            # fetch wrapper, error normalization
+│   │   │   ├── api.ts            # fetch wrapper + SSE frame parser
 │   │   │   ├── auth.tsx          # AuthProvider,  token in memory
+│   │   │   ├── useChat.ts        # chat transcript + streaming turn state
 │   │   │   ├── queries.ts        # TanStack Query hooks + query keys
 │   │   │   ├── api-types.ts      # GENERATED,  do not hand-edit
 │   │   │   └── types.ts          # shared hand-written types
@@ -399,7 +401,7 @@ cd frontend && npm test
 pytest evals/
 ```
 
-**204 tests** in total: 153 backend, 29 frontend, 22 eval-harness.
+**222 tests** in total: 153 backend, 44 frontend, 25 eval-harness.
 
 Backend tests run against a PostgreSQL + TimescaleDB container via testcontainers. Each test runs inside a savepoint that is rolled back afterwards, so the suite is order-independent without rebuilding the schema per test.
 
@@ -501,7 +503,7 @@ Built and tested; not yet started where noted.
 - [x] Device CRUD and the five readings endpoints
 - [x] React dashboard,  fleet overview, device detail, charts
 - [x] AI operator's assistant and `POST /chat/stream`
-- [ ] **Frontend chat drawer**,  a persistent assistant panel on the dashboard and device detail pages (`SPEC.md` § Frontend § Scope)
+- [x] **Frontend chat drawer**,  a persistent assistant panel on the dashboard and device detail pages
 - [x] **Agent eval suite**,  30 labeled cases with a cassette-replay runner (cassettes not yet recorded — see `evals/README.md`)
 - [ ] **Sensor simulator**,  APScheduler-driven synthetic telemetry with reproducible seeding (`docs/SIMULATOR.md` is currently a placeholder)
 - [ ] Hosted demo deployment

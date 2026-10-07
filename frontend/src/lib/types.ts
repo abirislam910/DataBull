@@ -23,6 +23,58 @@ export type Alert = Schemas['AlertResponse']
 export type User = Schemas['UserResponse']
 export type Credentials = Schemas['Credentials']
 export type TokenResponse = Schemas['TokenResponse']
+export type ChatMessageIn = Schemas['ChatMessageIn']
+export type ChatRequest = Schemas['ChatRequest']
+
+/**
+ * The SSE event contract for `POST /chat/stream`.
+ *
+ * Hand-written, unlike everything above — and deliberately. The endpoint returns
+ * a `StreamingResponse`, so OpenAPI describes its *request* body but has no way
+ * to describe the frames it streams back; there is no response schema to
+ * generate from. These mirror `backend/app/agent/events.py`, which SPEC fixes as
+ * the agent module's public contract, so the two must be changed together.
+ */
+export interface ChatUsage {
+  input_tokens: number
+  output_tokens: number
+  cost_usd: number
+  latency_ms: number
+}
+
+export interface TextDeltaEvent {
+  type: 'text'
+  delta: string
+}
+
+export interface ToolUseEvent {
+  type: 'tool_use'
+  name: string
+  input: Record<string, unknown>
+}
+
+export interface ToolResultEvent {
+  type: 'tool_result'
+  name: string
+  summary: string
+  truncated: boolean
+}
+
+export interface ErrorEvent {
+  type: 'error'
+  code: 'tool_failed' | 'llm_failed' | 'rate_limited' | 'invalid_input'
+  message: string
+}
+
+export interface DoneEvent {
+  type: 'done'
+  usage: ChatUsage
+  prompt_version: string
+  tool_calls: number
+}
+
+/** Discriminated on `type`, matching the backend's `AgentEvent` union. */
+export type AgentEvent = TextDeltaEvent | ToolUseEvent | ToolResultEvent | ErrorEvent | DoneEvent
 
 /** The device types the API accepts, for building selects without duplication. */
 export const DEVICE_TYPES = [

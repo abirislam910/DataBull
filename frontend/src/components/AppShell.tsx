@@ -1,5 +1,6 @@
 import { Activity, HardDrive, LogOut, ZodiacTaurus } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useMatch } from 'react-router-dom'
+import { ChatDrawer } from '@/components/ChatDrawer'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
@@ -12,6 +13,16 @@ const NAV_ITEMS = [
 /** Persistent chrome: brand, primary nav, and the signed-in identity. */
 export function AppShell(): JSX.Element {
   const { user, logout } = useAuth()
+
+  // SPEC § Frontend § Scope limits the assistant to these two pages — notably not
+  // the `/devices` list. Gating here rather than inside each page keeps one mount
+  // point, so the transcript survives moving between the dashboard and a device.
+  //
+  // Both matches are evaluated before combining: inlining them into one `||`
+  // short-circuits the second hook, which changes hook order between renders.
+  const onDashboard = useMatch('/dashboard')
+  const onDeviceDetail = useMatch('/devices/:deviceId')
+  const showAssistant = onDashboard !== null || onDeviceDetail !== null
 
   return (
     <div className="min-h-screen bg-bg">
@@ -62,6 +73,8 @@ export function AppShell(): JSX.Element {
       <main className="mx-auto max-w-7xl px-6 py-8">
         <Outlet />
       </main>
+
+      {showAssistant ? <ChatDrawer /> : null}
     </div>
   )
 }

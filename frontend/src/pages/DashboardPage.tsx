@@ -85,7 +85,7 @@ export function DashboardPage(): JSX.Element {
   // `useMemo` keeps these ISO strings stable across renders — they are part of
   // the query keys, so recomputing them every render would refetch endlessly.
   const since = useMemo(() => new Date(Date.now() - DAY_MS).toISOString(), [])
-  const activityStart = useMemo(() => new Date(Date.now() - HOUR_MS).toISOString(), [])
+  const activityStart = useMemo(() => new Date(Date.now() - 3 * HOUR_MS).toISOString(), [])
 
   const devices = useDevices()
   const alerts = useAlerts(since)
