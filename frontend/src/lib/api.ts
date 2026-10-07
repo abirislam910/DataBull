@@ -128,3 +128,88 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   }
   return (await response.json()) as T
 }
+
+/**
+ * POST a request and yield the Server-Sent Events it streams back.
+ *
+ * Not `EventSource`, which cannot send a request body, cannot POST, and cannot
+ * set an `Authorization` header — it only ever issues a bare GET. Since this
+ * app's token lives in memory and travels as a bearer header, the only option is
+ * `fetch` plus manual frame parsing. That is why this lives here rather than in
+ * a component: `api.ts` owns the token getter, and keeping it here preserves the
+ * invariant in this file's header that nothing else calls `fetch` directly.
+ *
+ * Yields each `data:` payload as a parsed object. Frames are delimited by a
+ * blank line, and a chunk boundary can land mid-frame, so the tail of each read
+ * is held back until its delimiter arrives.
+ */
+export async function* apiStream<T>(
+  path: string,
+  options: { body: unknown; signal?: AbortSignal },
+): AsyncGenerator<T> {
+  const token = getToken()
+  const headers: Record<string, string> = {
+    Accept: 'text/event-stream',
+    'Content-Type': 'application/json',
+  }
+  if (token !== null) headers['Authorization'] = `Bearer ${token}`
+
+  const response = await fetch(buildUrl(path, undefined), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(options.body),
+    ...(options.signal ? { signal: options.signal } : {}),
+  })
+
+  // Errors arrive as an ordinary JSON body, not as a stream — a missing API key
+  // is a 503 here, and auth failures a 401 — so they reuse the same parser.
+  if (!response.ok) throw await toApiError(response)
+  if (response.body === null) {
+    throw new ApiError(response.status, 'The response carried no body.', 'empty_stream')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+
+      // Split on the blank line that terminates a frame, keeping the remainder.
+      const frames = buffer.split('\n\n')
+      buffer = frames.pop() ?? ''
+
+      for (const frame of frames) {
+        const payload = parseFrame(frame)
+        if (payload !== null) yield payload as T
+      }
+    }
+    // A final frame with no trailing blank line still counts.
+    const trailing = parseFrame(buffer)
+    if (trailing !== null) yield trailing as T
+  } finally {
+    // Releasing the lock lets an aborted stream's connection be torn down
+    // instead of being held open by a reader nobody is draining.
+    reader.releaseLock()
+  }
+}
+
+/** Extract and parse the `data:` lines of one SSE frame, or null if there are none. */
+function parseFrame(frame: string): unknown {
+  const data = frame
+    .split('\n')
+    .filter((line) => line.startsWith('data:'))
+    .map((line) => line.slice('data:'.length).trimStart())
+    .join('\n')
+  if (data === '') return null
+  try {
+    return JSON.parse(data)
+  } catch {
+    // A truncated or non-JSON frame is skipped rather than killing the stream;
+    // the caller still gets every well-formed event around it.
+    return null
+  }
+}
