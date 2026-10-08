@@ -873,6 +873,51 @@
         }
       }
     },
+    "/chat/stream": {
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Chat Stream",
+        "description": "Stream one agent turn as Server-Sent Events.",
+        "operationId": "chat_stream_chat_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -1023,6 +1068,50 @@
         "title": "BulkReadingsResponse",
         "description": "`POST /devices/{device_id}/readings/bulk` \u2192 `{count}`."
       },
+      "ChatMessageIn": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ChatMessageIn",
+        "description": "One prior turn of the conversation."
+      },
+      "ChatRequest": {
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessageIn"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Messages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "messages"
+        ],
+        "title": "ChatRequest",
+        "description": "`{messages: [{role, content}, ...]}` per SPEC \u00a7 Chat."
+      },
       "Credentials": {
         "properties": {
           "email": {
@@ -1075,7 +1164,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "maxLength": 255,
+            "maxLength": 50,
             "minLength": 1,
             "title": "Name"
           },
@@ -1195,7 +1284,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 255,
+                "maxLength": 50,
                 "minLength": 1
               },
               {

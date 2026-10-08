@@ -28,6 +28,7 @@ services:
       # Required — the app will not start without it. Taken from your shell or
       # a local .env (see .env.example); never hard-code a real key here.
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in your environment or .env}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-dummy_key}
     ports:
       - "8000:8000"
 
