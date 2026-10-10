@@ -63,6 +63,11 @@ This was chosen deliberately over a two-service split. The tradeoff analysis and
     events.py     # AgentEvent types (SSE payload shapes)
     services.py   # AgentServices dependency container
     llm_client.py # Anthropic client wrapper
+  /mcp            # MCP PLANE — exposes the agent's tools to external clients
+    server.py     # MCPServer + the four tool registrations; `databull-mcp`
+    repositories.py  # Http{Device,Reading,Alert}Repository
+    client.py     # authenticated HTTP client for this API
+    settings.py   # env-only configuration
 ```
  
 ### Runtime model
@@ -81,6 +86,7 @@ Rules that keep the modules honest. If any of these gets violated, that's the si
 4. **The `/api/chat.py` router is an adapter, not a place for logic.** It receives the HTTP request, constructs `AgentServices`, calls `run_agent`, and translates the returned event stream into SSE frames. That's it. No prompt work, no tool logic, no LLM calls in the router.
 5. **Prompts and tool definitions are versioned.** `prompt.py` exports `SYSTEM_PROMPT_V1` (etc.) as immutable constants. Evals record which prompt version they targeted.
 6. **No sync DB sessions in application code.** Only `AsyncSession`. The only permitted sync engine lives in `alembic/env.py` for migrations.
+7. **`/mcp/` reaches data over HTTP, never in process.** It may import `/agent/` (tools, schemas, the service Protocols) and `/schemas/`. It must never import `/api/`, `/services/`, `/models/`, or `/db/`. This is not the "fake split" the extraction path warns against: the MCP server runs as its own process on someone else's machine, so HTTP is the only route it has. The `Http*Repository` implementations live under `/mcp/` precisely so that rule 3 still holds — `/agent/` continues to know only the Protocols it declares.
 ### Public interface of the agent module
  
 The single public function of the agent module. Nothing else in the codebase should import from `/agent/` except this function, the event types, and the services container.
@@ -455,6 +461,28 @@ Every list, table, and chart implements three states — never left as defaults.
 - New pages require an update to `Frontend § Scope`.
 ---
  
+## MCP server
+
+The agent's four tools are also published as an [MCP](https://modelcontextprotocol.io) server, so an operator can query their fleet from Claude Desktop, Claude Code, or any other MCP client instead of only from this app's chat drawer. Setup and client configuration live in `/docs/MCP.md`.
+
+**It is a client of this API, not a second database consumer.** The `Http*Repository` implementations satisfy the same Protocols the in-process ones do, so `app/agent/tools.py` and `tool_schemas.py` are reused unchanged. Three reasons for the HTTP boundary, the last of which is decisive:
+
+1. The API already enforces ownership twice and answers 404 rather than 403 for another tenant's rows; going over HTTP inherits all of it.
+2. No Postgres credentials leave the deployment.
+3. It is the only shape in which a third party can run this server. Someone else has an account, not a database.
+
+**Read-only.** All four tools are reads, and the write endpoints are deliberately not exposed: these tools are invoked by someone else's agent, and an accidental `DELETE /readings` is unrecoverable. Writes, if ever added, go behind an explicit opt-in flag.
+
+**Transport.** stdio is the supported transport: no listener, no auth surface of its own, and it matches how clients launch a server. `--transport streamable-http` exists but has not had its security pass (localhost binding, `Origin` validation, no token pass-through) and should not be exposed.
+
+**Tool result size.** `ToolContext.max_result_bytes` carries the cap rather than `tools.py` reading it from settings, because the right ceiling depends on the consumer. The chat endpoint pays for those bytes as Anthropic input tokens and caps at 2KB; an MCP client manages its own context window and defaults to 64KB.
+
+**Credentials.** Either `DATABULL_TOKEN`, or `DATABULL_EMAIL` + `DATABULL_PASSWORD`. These are not equivalent: a password lets the server re-mint an expired token and so survive unattended, while a bare token is scoped to its 24-hour life and cannot be renewed — the API issues no refresh tokens. The token path reports that in words rather than surfacing an opaque 401.
+
+**`databull-mcp --check`** connects, lists the fleet, and exits. It exists because a misconfigured stdio server fails *silently* inside the host application: `list_tools` is answered from the registered tools alone and never touches the API, so a server with entirely wrong credentials looks healthy until the first tool call.
+
+---
+
 ## Eval plan
  
 30 labeled cases in `/evals/cases.yaml`. Distribution:

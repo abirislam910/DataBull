@@ -30,6 +30,7 @@ Sensor Telemetry Platform — a FastAPI backend with PostgreSQL+TimescaleDB plus
     /schemas      # Pydantic models (kept separate from ORM)
     /services     # business logic — all DB writes live here
     /agent        # AI agent: tool definitions, system prompt, runner
+    /mcp          # MCP server — publishes the agent's tools to external clients
     main.py
   /alembic
   /tests
@@ -45,6 +46,7 @@ Sensor Telemetry Platform — a FastAPI backend with PostgreSQL+TimescaleDB plus
   runner.py
 /docs
   SPEC.md
+  MCP.md
   SIMULATOR.md
 docker-compose.yml
 .github/workflows/
@@ -75,6 +77,11 @@ cd frontend && npm run gen:api          # regenerate src/lib/api-types.ts from o
  
 # Evals
 pytest evals/                           # run agent eval suite
+
+# MCP server  (see /docs/MCP.md)
+cd backend && pip install -e ".[mcp]"   # registers the `databull-mcp` command
+databull-mcp --check                    # verify config against the API, then exit
+databull-mcp                            # serve over stdio (what a client launches)
 ```
  
 ## Conventions
