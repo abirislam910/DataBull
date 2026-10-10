@@ -27,6 +27,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The MCP server is a separate entry point, not part of the API image: it runs on
+# someone else's machine and reaches this deployment over HTTP. Optional so
+# `docker compose` does not carry the SDK and its transport dependencies.
+mcp = [
+    "mcp>=2,<3",
+    "httpx"
+]
+
 dev = [
     "pytest",
     "pytest-asyncio>=0.24",
@@ -41,6 +49,12 @@ dev = [
     "pyyaml",
     "types-PyYAML"
 ]
+
+# Declared after the extras table on purpose: a `[project.scripts]` header placed
+# between two extras silently swallows the ones below it as script entries.
+[project.scripts]
+# What an MCP client's config points at. Installed by `pip install -e ".[mcp]"`.
+databull-mcp = "app.mcp.server:main"
 
 # Only the app package is importable/installable; alembic/ and tests/ are not
 # part of the distribution.

@@ -34,6 +34,7 @@ Every device, reading, and conversation is scoped to the authenticated user. Cro
 - **Device Management**,  Full CRUD over devices, each with a type (`temperature` / `pressure` / `flow`), a unit, and optional thresholds.
 - **JWT Authentication**,  Stateless HS256 bearer tokens with argon2id password hashing. Login is timing-safe and does not reveal whether an email is registered.
 - **AI Operator's Assistant**,  A Claude tool-calling agent over four typed tools, streamed to the client as SSE, with per-turn tool-call budgets, a wall-clock timeout, and token/cost accounting on every turn.
+- **MCP Server**,  The same four tools published over the Model Context Protocol, so Claude Desktop, Claude Code, or any other MCP client can query a fleet directly. Read-only, and a client of the API rather than of the database — see [docs/MCP.md](docs/MCP.md).
 - **Generated API Types**,  The frontend's request and response types are generated from the backend's OpenAPI schema, so a contract change breaks the build instead of production.
 
 ---
@@ -191,6 +192,7 @@ The API refuses to start without `SECRET_KEY`. That is deliberate: the value sig
 | Migrations | Alembic (hand-written initial migration) |
 | Auth | PyJWT (HS256), `pwdlib[argon2]` (argon2id) |
 | AI | Anthropic SDK 1.x, `claude-sonnet-5`, native tool calling |
+| Tool interop | MCP Python SDK 2.x — the same tools, for any MCP client |
 | Streaming | Server-Sent Events over `StreamingResponse` |
 | Frontend | Vite, React 18, TypeScript (strict), TanStack Query, React Router 6 |
 | UI | Tailwind CSS, shadcn/ui, `lucide-react`, Recharts |
@@ -222,6 +224,11 @@ DataBull/
 │   │   │   ├── llm_client.py     # Anthropic adapter + cost estimation
 │   │   │   ├── prompt.py         # versioned system prompts
 │   │   │   └── events.py         # public SSE event contract
+│   │   ├── mcp/                  # MCP server — the agent's tools, for any client
+│   │   │   ├── server.py         # MCPServer + tool registrations; databull-mcp
+│   │   │   ├── repositories.py   # Http{Device,Reading,Alert}Repository
+│   │   │   ├── client.py         # authenticated HTTP client for this API
+│   │   │   └── settings.py       # env-only configuration
 │   │   ├── core/
 │   │   │   ├── config.py         # pydantic-settings; env-driven
 │   │   │   ├── security.py       # hashing + JWT encode/decode
@@ -278,6 +285,7 @@ DataBull/
 │
 ├── docs/
 │   ├── SPEC.md                   # the contract,  read before any change
+│   ├── MCP.md                    # MCP server setup and client configuration
 │   └── SIMULATOR.md              # placeholder; simulator not yet built
 │
 ├── evals/                        # agent eval suite — 30 cases, replayed from cassettes
@@ -399,13 +407,18 @@ cd frontend && npm test
 
 # Agent evals,  replays recorded model turns; no API key, no network, no cost
 pytest evals/
+
+# MCP server,  repositories against the real app, plus a real stdio handshake
+cd backend && pytest tests/test_mcp_repositories.py tests/test_mcp_server.py tests/test_mcp_stdio.py
 ```
 
-**222 tests** in total: 153 backend, 44 frontend, 25 eval-harness.
+**259 tests** in total: 180 backend, 53 frontend, 26 eval-harness.
 
 Backend tests run against a PostgreSQL + TimescaleDB container via testcontainers. Each test runs inside a savepoint that is rolled back afterwards, so the suite is order-independent without rebuilding the schema per test.
 
-The agent is tested without spending money. `LLMClient` is a Protocol, so a scripted fake replays model turns and `run_agent` executes unmodified,  the real loop, the real tool dispatch, no network. The 25 agent tests run in about 0.1s with no database at all. Per `CLAUDE.md`, no test may make a live Anthropic call without a recorded fixture.
+The agent is tested without spending money. `LLMClient` is a Protocol, so a scripted fake replays model turns and `run_agent` executes unmodified,  the real loop, the real tool dispatch, no network. The 26 agent tests run in about 0.2s with no database at all. Per `CLAUDE.md`, no test may make a live Anthropic call without a recorded fixture.
+
+The MCP server is tested the same way, one layer out. Its repositories run every request through the actual FastAPI application over `httpx.ASGITransport`, backed by the same testcontainers Postgres — so a tenant-isolation assertion there checks the API's real behaviour rather than a stub's, which matters because that enforcement is the entire reason the server was built as an HTTP client. A separate test spawns `databull-mcp` as a subprocess and completes a genuine `initialize` + `list_tools` handshake over stdio; it is the only test covering the transport, and it needs no API and no credentials.
 
 **Evals are separate from tests.** `backend/tests/test_agent.py` proves the tool loop works; `evals/` asks whether the *model* picks the right tools and grounds its answers — a different question with a different failure mode. The 30 cases replay recorded Anthropic turns from `evals/cassettes/`, so CI runs them for free and deterministically. A case with no cassette yet is skipped and counted in the printed metrics, so an all-skipped run cannot be mistaken for a pass. Recording is opt-in, needs a key, and spends money: see [evals/README.md](evals/README.md).
 
@@ -492,6 +505,10 @@ The assistant has four tools: `list_devices`, `query_readings`, `aggregate_windo
 |:-------|:---------|:-----|:------------|
 | GET | `/health` | No | Liveness probe,  `{"status": "ok"}` |
 
+### MCP tools
+
+Not HTTP endpoints. The same four tools the assistant uses are also published over the Model Context Protocol, reached by launching `databull-mcp` rather than by calling a URL: `list_devices`, `query_readings`, `aggregate_window`, `get_recent_alerts`. All read-only. Setup and client configuration are in [docs/MCP.md](docs/MCP.md).
+
 ---
 
 ## Roadmap
@@ -505,5 +522,6 @@ Built and tested; not yet started where noted.
 - [x] AI operator's assistant and `POST /chat/stream`
 - [x] **Frontend chat drawer**,  a persistent assistant panel on the dashboard and device detail pages
 - [x] **Agent eval suite**,  30 labeled cases with a cassette-replay runner (cassettes not yet recorded — see `evals/README.md`)
+- [x] **MCP server**,  the agent's tools over stdio for any MCP client (`--transport streamable-http` exists but has not had its security pass)
 - [ ] **Sensor simulator**,  APScheduler-driven synthetic telemetry with reproducible seeding (`docs/SIMULATOR.md` is currently a placeholder)
 - [ ] Hosted demo deployment

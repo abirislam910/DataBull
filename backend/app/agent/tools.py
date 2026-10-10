@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
@@ -21,10 +21,11 @@ from app.agent.services import AgentServices
 from app.core.config import get_settings
 from app.schemas.reading import AggregateFn, AggregateWindow
 
-# Cap on how much of a tool's output is fed back to the model, from
-# SPEC § Tool policy. Enforced on the serialized JSON, because that is what
-# actually costs tokens.
-DEFAULT_MAX_RESULT_BYTES = get_settings().agent_tool_result_max_bytes
+
+def _default_max_result_bytes() -> int:
+    """The cap from SPEC § Tool policy, read per context rather than per import."""
+    return get_settings().agent_tool_result_max_bytes
+
 
 # Ceiling on rows a single tool call may pull back. The model cannot raise it;
 # without one, "show me everything" turns into a hypertable scan serialized
@@ -38,6 +39,12 @@ class ToolContext:
 
     user_id: uuid.UUID
     services: AgentServices
+    # How much serialized output may be fed back, per SPEC § Tool policy.
+    # Carried here rather than read from settings inside each tool because the
+    # right ceiling depends on the consumer: the chat endpoint is paying for
+    # these bytes as Anthropic input tokens, while an MCP client manages its own
+    # context and a 2KB cap would silently discard rows it could well afford.
+    max_result_bytes: int = field(default_factory=_default_max_result_bytes)
 
 
 @dataclass(frozen=True)
@@ -132,7 +139,7 @@ async def list_devices(ctx: ToolContext, _raw: dict[str, Any]) -> ToolOutcome:
         }
         for device in devices
     ]
-    payload, truncated = _serialize(rows, DEFAULT_MAX_RESULT_BYTES)
+    payload, truncated = _serialize(rows, ctx.max_result_bytes)
     names = ", ".join(device.name for device in devices[:5])
     summary = (
         f"Found {len(devices)} device(s): {names}" if devices else "No devices found"
@@ -153,7 +160,7 @@ async def query_readings(ctx: ToolContext, raw: dict[str, Any]) -> ToolOutcome:
         {"time": reading.time.isoformat(), "value": reading.value}
         for reading in readings
     ]
-    payload, truncated = _serialize(rows, DEFAULT_MAX_RESULT_BYTES)
+    payload, truncated = _serialize(rows, ctx.max_result_bytes)
     summary = (
         f"{len(readings)} reading(s) between {args.start.isoformat()} "
         f"and {args.end.isoformat()}"
@@ -175,7 +182,7 @@ async def aggregate_window(ctx: ToolContext, raw: dict[str, Any]) -> ToolOutcome
         {"bucket": bucket.bucket.isoformat(), "value": bucket.value}
         for bucket in buckets
     ]
-    payload, truncated = _serialize(rows, DEFAULT_MAX_RESULT_BYTES)
+    payload, truncated = _serialize(rows, ctx.max_result_bytes)
     summary = (
         f"{len(buckets)} {args.window.value} bucket(s), {args.fn.value}"
         if buckets
@@ -204,7 +211,7 @@ async def get_recent_alerts(ctx: ToolContext, raw: dict[str, Any]) -> ToolOutcom
         }
         for alert in alerts
     ]
-    payload, truncated = _serialize(rows, DEFAULT_MAX_RESULT_BYTES)
+    payload, truncated = _serialize(rows, ctx.max_result_bytes)
     summary = (
         f"{len(alerts)} alert(s) since {args.since.isoformat()}"
         if alerts

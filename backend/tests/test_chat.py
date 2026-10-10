@@ -23,6 +23,7 @@ from app.agent.services import (
     SqlalchemyReadingRepository,
 )
 from app.api.chat import build_agent_services
+from app.core.config import get_settings
 from app.core.deps import CurrentUser, DbSession
 from app.main import app
 from app.models import Device
@@ -128,13 +129,20 @@ async def test_requires_authentication(client: AsyncClient) -> None:
 
 
 async def test_without_an_api_key_the_assistant_is_unavailable_not_broken(
-    authed_client: AsyncClient,
+    authed_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """No ANTHROPIC_API_KEY: this one endpoint 503s, the rest of the API is fine.
 
     Deliberately does NOT use the `scripted_llm` override, so it exercises the
     real `build_agent_services` — the path a deployment with no key takes.
+
+    The absence of a key is forced rather than assumed. `Settings` reads a `.env`
+    relative to the working directory, so a developer with a real key in the repo
+    root's `.env` would otherwise see this test pass or fail depending on which
+    directory they ran pytest from.
     """
+    monkeypatch.setattr(get_settings(), "anthropic_api_key", None)
+
     resp = await authed_client.post(
         "/chat/stream", json={"messages": [{"role": "user", "content": "hi"}]}
     )

@@ -26,8 +26,10 @@ jobs:
           cache: pip
           cache-dependency-path: backend/pyproject.toml
 
-      - name: Install (with dev extras)
-        run: pip install ".[dev]"
+      # The `mcp` extra is needed too: tests/test_mcp_*.py import the SDK, so
+      # installing dev alone breaks the backend job at collection time.
+      - name: Install (with dev and mcp extras)
+        run: pip install -e ".[dev,mcp]"
       
       - name: Run package audit (pip-audit)
         run: pip-audit .
