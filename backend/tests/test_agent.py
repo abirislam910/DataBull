@@ -358,6 +358,47 @@ async def test_large_tool_result_is_truncated_and_flagged() -> None:
     assert '"truncated":true' in payload
 
 
+async def test_the_truncation_cap_is_per_context_not_global() -> None:
+    """A consumer with a larger context budget keeps rows the chat endpoint drops.
+
+    The same payload that truncates at the default 2KB must survive a raised cap,
+    which is what lets the MCP server serve full result sets to a client managing
+    its own context.
+    """
+    readings = [
+        ReadingResponse(
+            device_id=DEVICE_ID,
+            time=FIXED_NOW - timedelta(minutes=i),
+            value=float(i),
+        )
+        for i in range(500)
+    ]
+    args = {
+        "device_id": str(DEVICE_ID),
+        "start": (FIXED_NOW - timedelta(days=1)).isoformat(),
+        "end": FIXED_NOW.isoformat(),
+    }
+    # No LLM is involved: this exercises `execute_tool` directly, not a turn.
+    services = build_services(
+        FakeLLMClient([]), readings=FakeReadingRepository(USER_ID, readings=readings)
+    )
+
+    tight = await execute_tool(
+        ToolContext(user_id=USER_ID, services=services, max_result_bytes=2048),
+        "query_readings",
+        args,
+    )
+    roomy = await execute_tool(
+        ToolContext(user_id=USER_ID, services=services, max_result_bytes=1_000_000),
+        "query_readings",
+        args,
+    )
+
+    assert tight.truncated is True
+    assert roomy.truncated is False
+    assert len(roomy.payload) > len(tight.payload)
+
+
 async def test_small_tool_result_is_not_flagged() -> None:
     buckets = [AggregateBucket(bucket=FIXED_NOW, value=42.0)]
     llm = FakeLLMClient(
