@@ -521,7 +521,7 @@ Built and tested; not yet started where noted.
 - [x] React dashboard,  fleet overview, device detail, charts
 - [x] AI operator's assistant and `POST /chat/stream`
 - [x] **Frontend chat drawer**,  a persistent assistant panel on the dashboard and device detail pages
-- [x] **Agent eval suite**,  30 labeled cases with a cassette-replay runner (cassettes not yet recorded — see `evals/README.md`)
+- [x] **Agent eval suite**,  30 labeled cases with a cassette-replay runner
 - [x] **MCP server**,  the agent's tools over stdio for any MCP client (`--transport streamable-http` exists but has not had its security pass)
 - [ ] **Sensor simulator**,  APScheduler-driven synthetic telemetry with reproducible seeding (`docs/SIMULATOR.md` is currently a placeholder)
 - [ ] Hosted demo deployment
