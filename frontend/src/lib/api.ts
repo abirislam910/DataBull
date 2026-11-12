@@ -75,8 +75,16 @@ async function toApiError(response: Response): Promise<ApiError> {
  * The backend is unaware of this prefix — the dev proxy rewrites it away, so
  * SPEC's endpoint contract (`/devices`, `/readings`, …) is unchanged. A
  * deployment serving both from one origin needs the same rewrite at its edge.
+ *
+ * A frontend deployed on a different domain from the API instead sets
+ * `VITE_API_BASE_URL` to the API's own URL at build time, and the browser calls
+ * it directly. That only works if the API allows this origin through its CORS
+ * allowlist (`CORS_ALLOW_ORIGINS`). Vite inlines the value into the bundle, so
+ * changing it means rebuilding. An empty value counts as unset, and a trailing
+ * slash is dropped so paths join cleanly.
  */
-export const API_BASE = '/api'
+const configuredBase = import.meta.env.VITE_API_BASE_URL?.trim()
+export const API_BASE = configuredBase ? configuredBase.replace(/\/+$/, '') : '/api'
 
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'

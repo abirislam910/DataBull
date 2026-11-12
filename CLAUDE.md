@@ -47,7 +47,9 @@ Sensor Telemetry Platform — a FastAPI backend with PostgreSQL+TimescaleDB plus
 /docs
   SPEC.md
   MCP.md
+  DEPLOYMENT.md
   SIMULATOR.md
+/deploy           # AWS deployment: production compose file, bootstrap and release scripts
 docker-compose.yml
 .github/workflows/
 ```

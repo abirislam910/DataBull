@@ -97,6 +97,24 @@ class Settings(BaseSettings):
     agent_llm_timeout_seconds: float = 30.0
     agent_turn_timeout_seconds: float = 60.0
 
+    # --- CORS -------------------------------------------------------------
+    # Comma-separated browser origins allowed to call the API cross-origin, for
+    # a frontend hosted on a different domain than the API. Empty (the default)
+    # adds no CORS headers at all, which is right for local development, where
+    # the Vite dev server proxies /api and the browser never leaves one origin.
+    cors_allow_origins: str = ""
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """The allowlist as a list. A browser's Origin header never carries a
+        trailing slash, so one is stripped here rather than silently matching
+        nothing."""
+        return [
+            origin.strip().rstrip("/")
+            for origin in self.cors_allow_origins.split(",")
+            if origin.strip()
+        ]
+
     @model_validator(mode="after")
     def validate_limits(self) -> Self:
         """Check that the default limit is not greater than the max limit."""

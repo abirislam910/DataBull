@@ -122,3 +122,43 @@ describe('apiFetch', () => {
     await expect(apiFetch<void>('/devices/x', { method: 'DELETE' })).resolves.toBeUndefined()
   })
 })
+
+describe('API base URL', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    vi.resetModules()
+  })
+
+  /** Load a fresh copy of the module, since the base is read once at import. */
+  async function requestedUrl(base: string | undefined): Promise<string> {
+    if (base !== undefined) vi.stubEnv('VITE_API_BASE_URL', base)
+    vi.resetModules()
+    const api = await import('./api')
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await api.apiFetch('/devices', { params: { limit: 5 } })
+    return String(fetchMock.mock.calls[0]?.[0])
+  }
+
+  it('defaults to the /api prefix the dev proxy expects', async () => {
+    expect(await requestedUrl(undefined)).toBe('/api/devices?limit=5')
+  })
+
+  it('calls the configured API directly when one is set', async () => {
+    expect(await requestedUrl('https://api.example.com')).toBe(
+      'https://api.example.com/devices?limit=5',
+    )
+  })
+
+  it('drops a trailing slash so paths join cleanly', async () => {
+    expect(await requestedUrl('https://api.example.com/')).toBe(
+      'https://api.example.com/devices?limit=5',
+    )
+  })
+
+  it('treats an empty value as unset', async () => {
+    expect(await requestedUrl('')).toBe('/api/devices?limit=5')
+  })
+})

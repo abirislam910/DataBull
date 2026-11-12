@@ -295,6 +295,7 @@ DataBull/
 │   │   └── test/                 # Vitest setup + render helpers
 │   ├── tailwind.config.ts        # design tokens; never inline hex codes
 │   ├── vite.config.ts            # dev server, /api proxy, Vitest config
+│   ├── vercel.json               # Vercel: serve index.html for client-side routes
 │   └── package.json
 │
 ├── evals/                        # agent eval suite: 30 cases replayed from cassettes
@@ -310,7 +311,13 @@ DataBull/
 ├── docs/
 │   ├── SPEC.md                   # the contract; read before any change
 │   ├── MCP.md                    # MCP server setup and client configuration
+│   ├── DEPLOYMENT.md             # AWS deployment: setup, costs, operations, teardown
 │   └── SIMULATOR.md              # placeholder; simulator not yet built
+│
+├── deploy/
+│   ├── docker-compose.prod.yml   # production stack for the EC2 host
+│   ├── bootstrap.sh              # server-side install and redeploy script
+│   └── release.sh                # package, upload, and redeploy from your machine
 │
 ├── .github/workflows/
 │   └── ci.yml                    # backend + frontend jobs
@@ -424,6 +431,7 @@ When the API runs outside Docker, it reads `backend/.env` (start from `backend/.
 | `DEFAULT_READING_LIMIT` | No | `1000` | Rows returned by `GET /readings` when no `limit` is given. |
 | `MAX_READING_LIMIT` | No | `10000` | Largest `limit` `GET /readings` accepts. |
 | `MAX_AGGREGATE_BUCKETS` | No | `1000` | Aggregate requests wider than this are rejected. |
+| `CORS_ALLOW_ORIGINS` | No | unset | Comma-separated browser origins allowed to call the API, for a frontend hosted on another domain. Unset adds no CORS headers, which is right for local development. |
 
 `.env` files are gitignored. Never commit real secrets; document new variables in `backend/.env.example` instead.
 
@@ -434,6 +442,10 @@ The MCP server reads its configuration from the environment only, usually suppli
 ### Frontend
 
 No environment variables are required for local development; the dev server's proxy handles API routing.
+
+| Variable | Required | Default | Description |
+|:---------|:---------|:--------|:------------|
+| `VITE_API_BASE_URL` | No | `/api` | The API's URL for a frontend deployed on another domain, such as `https://<id>.cloudfront.net`. Vite inlines it at build time, so changing it means rebuilding. The API must list the frontend's origin in `CORS_ALLOW_ORIGINS`. |
 
 ---
 
@@ -477,13 +489,22 @@ GitHub Actions runs two jobs on every push and pull request:
 
 ## Deployment
 
-There is **no hosted deployment yet.** The project runs locally through Docker Compose.
+The backend runs on AWS as the same Docker Compose stack used locally, on a single EC2 instance (`t4g.small`, Amazon Linux 2023) behind a CloudFront distribution that provides HTTPS. The frontend is hosted on Vercel and calls the API's CloudFront URL directly, cross-origin.
 
-What is in place for one:
+- **The frontend is built with `VITE_API_BASE_URL`** set to the CloudFront URL, and the API allows the Vercel origins through `CORS_ALLOW_ORIGINS`. The token travels in the `Authorization` header, never a cookie, so CORS runs without credentials mode. `frontend/vercel.json` serves `index.html` for client-side routes so deep links survive a reload.
+
+- **TimescaleDB rules out RDS and Aurora,** neither of which offers the `timescaledb` extension, so the database runs as a container next to the API. It is not published to the host; only the API container can reach it.
+- **CloudFront is the only way in.** The security group admits port 8000 only from CloudFront's managed address list, with no SSH or Postgres access. Caching is off, and `Authorization` is forwarded to the API.
+- **Secrets live in SSM Parameter Store** as encrypted parameters, read at deploy time through a narrowly scoped instance role.
+- **Releases build on the server.** `deploy/release.sh` packages the committed code, uploads it to a private S3 bucket, and redeploys through SSM Run Command, so no local Docker or container registry is needed. There is no SSH; shell access is through Session Manager.
+
+The full setup, costs (about $17.50 a month), security limitations, and teardown steps are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+The building blocks:
 
 - **`backend/Dockerfile`** builds on `python:3.12-slim`, installs dependencies in a separate layer from application code so the cache survives code changes, and runs as a non-root `appuser`.
 - **`backend/entrypoint.sh`** runs `alembic upgrade head` before handing off to the process command, so a container start always reconciles the schema.
-- **`docker-compose.yml`** provisions `timescale/timescaledb:latest-pg16` with a health check, and the API waits for it to be healthy before starting.
+- **`deploy/docker-compose.prod.yml`** is the production stack: private database, secrets from the environment, no `--reload`, and automatic restarts.
 
 ---
 
@@ -569,4 +590,6 @@ Built and tested, except where unchecked.
 - [x] MCP server over stdio for any MCP client
 - [ ] Security review of the MCP server's `streamable-http` transport (the flag exists; use stdio until it is reviewed)
 - [ ] Sensor simulator: APScheduler-driven synthetic telemetry with reproducible seeding
-- [ ] Hosted demo deployment
+- [x] Backend deployed to AWS: EC2 behind CloudFront, released through S3 and SSM Run Command
+- [ ] Take the CloudFront-to-origin hop off the public internet (CloudFront VPC origin) and schedule database backups
+- [x] Frontend hosted on Vercel, calling the API cross-origin through CORS

@@ -1,0 +1,52 @@
+# Production stack for a single EC2 host. See docs/DEPLOYMENT.md.
+#
+# How this differs from the root docker-compose.yml, which is for local
+# development:
+# - Postgres is not published to the host. Only the API container can reach it,
+#   over the compose network.
+# - The database password and app secrets come from an env file that
+#   deploy/bootstrap.sh writes from SSM Parameter Store. Nothing is hard-coded.
+# - No --reload: the API runs the Dockerfile's production uvicorn command.
+# - Both services restart automatically, including after a reboot.
+
+# A fixed project name keeps the database volume (databull_db_data) the same
+# across deploys, even though each release is extracted to a new directory.
+name: databull
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: telemetry
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d telemetry"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ../backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${DB_PASSWORD}@db:5432/telemetry
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      # Empty when no key is stored, so /chat/stream answers 503
+      # assistant_unavailable instead of failing against a placeholder key.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Browser origins allowed to call the API (a frontend on another domain).
+      # Empty means no CORS headers, so only same-origin callers work.
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
+    # Published on the host, but the security group only admits CloudFront.
+    ports:
+      - "8000:8000"
+
+volumes:
+  db_data:

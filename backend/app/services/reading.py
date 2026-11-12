@@ -81,7 +81,6 @@ async def create_reading(
 
     reading = Reading(
         device_id=device.id,
-        # The model dropped its server-side default, so "now" is decided here.
         time=data.time if data.time is not None else datetime.now(UTC),
         value=data.value,
     )
