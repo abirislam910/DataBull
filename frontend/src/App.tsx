@@ -9,6 +9,7 @@ import { DeviceDetailPage } from '@/pages/DeviceDetailPage'
 import { DevicesPage } from '@/pages/DevicesPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { SignupPage } from '@/pages/SignupPage'
+import { LandingPage } from '@/pages/LandingPage'
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -41,6 +42,7 @@ export function App(): JSX.Element {
             and outside the routes so the token survives navigation. */}
         <AuthProvider>
           <Routes>
+            <Route path="/landing" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
 
@@ -52,7 +54,7 @@ export function App(): JSX.Element {
               </Route>
             </Route>
 
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/landing" replace />} />
           </Routes>
         </AuthProvider>
       </Router>
